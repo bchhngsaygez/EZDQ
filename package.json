@@ -17,7 +17,7 @@
 		"postinstall": "node tools/make-icon.js",
 		"dev": "npm run build:bot && electron .",
 		"start": "electron .",
-		"build": "npm run build:bot && electron-builder --win portable",
+		"build": "node tools/build.js",
 		"build:installer": "npm run build:bot && electron-builder --win nsis"
 	},
 	"devDependencies": {
