@@ -50,7 +50,8 @@ Cách lấy token qua trình duyệt (Chrome, Edge, Brave...):
 2. Bấm phím **F12** (hoặc `Ctrl + Shift + I`) để mở Công cụ cho nhà phát triển (DevTools).
 3. Chuyển sang tab **Console** .
 4. Dán script vào
-```window.webpackChunkdiscord_app.push([
+```
+window.webpackChunkdiscord_app.push([
 	[Symbol()],
 	{},
 	req => {
@@ -66,12 +67,11 @@ Cách lấy token qua trình duyệt (Chrome, Edge, Brave...):
 		}
 	},
 ]);
-```
 window.webpackChunkdiscord_app.pop();
 console.log('%cWorked!', 'font-size: 50px');
 console.log(`%cYou now have your token in the clipboard!`, 'font-size: 16px');
 
-
+```
 ---
 
 ## 3. Các loại nhiệm vụ được hỗ trợ
