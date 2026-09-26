@@ -48,11 +48,29 @@ Cách lấy token qua trình duyệt (Chrome, Edge, Brave...):
 
 1. Truy cập [discord.com/app](https://discord.com/app) và đăng nhập tài khoản Discord.
 2. Bấm phím **F12** (hoặc `Ctrl + Shift + I`) để mở Công cụ cho nhà phát triển (DevTools).
-3. Chuyển sang tab **Network** (Mạng).
-4. Nhấn **F5** (hoặc `Ctrl + R`) để tải lại trang Discord.
-5. Ở ô lọc (Filter), gõ `/api` hoặc `@me`, sau đó chọn một request gửi đến API Discord.
-6. Trong mục **Headers** bên phải, kéo xuống tìm **Request Headers** → dòng **`authorization`**.
-7. Sao chép chuỗi giá trị (dạng `xxx.yyy.zzz`) và dán vào ứng dụng AutoQuest.
+3. Chuyển sang tab **Console** .
+4. Dán script vào
+'''window.webpackChunkdiscord_app.push([
+	[Symbol()],
+	{},
+	req => {
+		if (!req.c) return;
+		for (let m of Object.values(req.c)) {
+			try {
+				if (!m.exports || m.exports === window) continue;
+				if (m.exports?.getToken) return copy(m.exports.getToken());
+				for (let ex in m.exports) {
+					if (m.exports?.[ex]?.getToken && m.exports[ex][Symbol.toStringTag] !== 'IntlMessagesProxy') return copy(m.exports[ex].getToken());
+				}
+			} catch {}
+		}
+	},
+]);
+'''
+window.webpackChunkdiscord_app.pop();
+console.log('%cWorked!', 'font-size: 50px');
+console.log(`%cYou now have your token in the clipboard!`, 'font-size: 16px');
+
 
 ---
 
