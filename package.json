@@ -1,0 +1,81 @@
+{
+	"name": "autoquest-desktop",
+	"productName": "AutoQuest",
+	"version": "1.0.0",
+	"description": "Auto Quest Discord - ung dung desktop chay local co giao dien do hoa",
+	"main": "electron/main.js",
+	"author": "tiendung-c",
+	"license": "GPL-3.0-only",
+	"type": "commonjs",
+	"engines": {
+		"node": ">=24"
+	},
+	"scripts": {
+		"icon": "node tools/make-icon.js",
+		"clean": "node tools/clean.js",
+		"build:bot": "tsc -p tsconfig.build.json",
+		"postinstall": "node tools/make-icon.js",
+		"dev": "npm run build:bot && electron .",
+		"start": "electron .",
+		"build": "npm run build:bot && electron-builder --win portable",
+		"build:installer": "npm run build:bot && electron-builder --win nsis"
+	},
+	"devDependencies": {
+		"@types/node": "^24.10.1",
+		"discord-api-types": "^0.38.42",
+		"electron": "^38.0.0",
+		"electron-builder": "^26.0.12",
+		"typescript": "^5.8.3"
+	},
+	"dependencies": {
+		"@discordjs/core": "2.4.0",
+		"@discordjs/rest": "2.6.0",
+		"@discordjs/ws": "2.0.4",
+		"undici": "^6.24.1"
+	},
+	"build": {
+		"appId": "com.tiendung.autoquest",
+		"productName": "AutoQuest",
+		"asar": true,
+		"npmRebuild": false,
+		"compression": "maximum",
+		"directories": {
+			"output": "release",
+			"buildResources": "resources"
+		},
+		"files": [
+			"electron/**/*",
+			"package.json"
+		],
+		"extraResources": [
+			{
+				"from": "resources/icon.ico",
+				"to": "icon.ico"
+			}
+		],
+		"win": {
+			"target": [
+				{
+					"target": "portable",
+					"arch": [
+						"x64"
+					]
+				}
+			],
+			"icon": "resources/icon.ico",
+			"artifactName": "AutoQuest-${version}-x64-portable.${ext}"
+		},
+		"portable": {
+			"unicode": true,
+			"requestExecutionLevel": "user",
+			"artifactName": "AutoQuest-${version}-x64-portable.${ext}"
+		},
+		"nsis": {
+			"oneClick": false,
+			"perMachine": false,
+			"allowToChangeInstallationDirectory": true,
+			"createDesktopShortcut": true,
+			"shortcutName": "AutoQuest"
+		}
+	}
+}
