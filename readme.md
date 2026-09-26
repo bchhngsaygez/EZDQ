@@ -24,13 +24,13 @@
 
 ## 1. Hướng dẫn sử dụng (File chạy ngay không cần cài đặt)
 
-File thực thi portable đã được đóng gói sẵn trong thư mục `release/`:
+Bạn có thể tải file chạy trực tiếp từ mục **Releases** trên GitHub hoặc tự đóng gói từ mã nguồn:
 
-```text
-release/AutoQuest-1.0.0-x64-portable.exe
-```
+- **Tải trực tiếp:** Tải phiên bản mới nhất tại [AutoQuest Releases](https://github.com/tiendung-c/AutoQuest/releases) (file `AutoQuest-1.0.0-x64-portable.exe`).
+- **Tự đóng gói:** Chạy `npm run build`, file `.exe` sẽ được tạo trong thư mục `release/`.
 
-1. Mở thư mục `release`, chạy file **`AutoQuest-1.0.0-x64-portable.exe`**.
+**Các bước sử dụng:**
+1. Khởi chạy file **`AutoQuest-1.0.0-x64-portable.exe`**.
 2. Nếu Windows SmartScreen hiển thị cảnh báo file mới build, chọn: **More info** → **Run anyway**.
 3. Dán **Token Discord** của bạn vào ô nhập (hỗ trợ nút **Dán** tự động trích xuất token từ clipboard).
 4. *(Tuỳ chọn)* Nhập **Webhook URL** nếu muốn nhận thông báo khi làm xong quest.
