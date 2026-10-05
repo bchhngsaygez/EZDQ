@@ -1,11 +1,7 @@
-# ⚡ AutoQuest Web — Tự Động Làm Nhiệm Vụ Discord Trên Nền Tảng Web
+# ⚡ EZDQ — Easy Discord Quest (Web Platform)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/tiendung-c/AutoQuest/main/resources/icon.png" width="90" height="90" alt="AutoQuest Web Logo" />
-</p>
-
-<p align="center">
-  <b>Phiên bản Web thế hệ mới</b>: Giao diện Minimalist Dark tinh tế, hỗ trợ Song ngữ (Tiếng Việt / English), làm nhiều quest cùng lúc (Parallel Mode), tích hợp tự động giải CAPTCHA (CapSolver / 2Captcha / Anti-Captcha), bảo mật RAM-only tuyệt đối và tự động cập nhật trạng thái Discord <code>"Doing Quest ✔"</code>.
+  <b>EZDQ (Easy Discord Quest) Web</b>: Giao diện Minimalist Dark tinh tế, hỗ trợ Song ngữ (Tiếng Việt / English), làm nhiều quest cùng lúc (Parallel Mode), tích hợp tự động giải CAPTCHA (CapSolver / 2Captcha / Anti-Captcha), bảo mật RAM-only tuyệt đối và tự động cập nhật trạng thái Discord <code>"Doing Quest ✔"</code>.
 </p>
 
 ---

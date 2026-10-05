@@ -1,9 +1,9 @@
 {
-	"name": "autoquest-web",
-	"productName": "AutoQuest Web",
+	"name": "ezdq",
+	"productName": "EZDQ",
 	"version": "2.0.0",
-	"description": "AutoQuest Web - Tự động làm nhiệm vụ Discord chạy trên Web (Local, VPS, Docker, Cloud Host)",
-	"author": "tiendung-c & antigravity",
+	"description": "EZDQ (Easy Discord Quest) - Tự động làm nhiệm vụ Discord chạy trên Web (Local, VPS, Docker, Cloud Host)",
+	"author": "bchhngsaygez",
 	"license": "GPL-3.0-only",
 	"type": "commonjs",
 	"engines": {
