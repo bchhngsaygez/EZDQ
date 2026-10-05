@@ -1,81 +1,53 @@
 {
-	"name": "autoquest-desktop",
-	"productName": "AutoQuest",
-	"version": "1.0.0",
-	"description": "Auto Quest Discord - ung dung desktop chay local co giao dien do hoa",
-	"main": "electron/main.js",
-	"author": "tiendung-c",
+	"name": "autoquest-web",
+	"productName": "AutoQuest Web",
+	"version": "2.0.0",
+	"description": "AutoQuest Web - Tự động làm nhiệm vụ Discord chạy trên Web (Local, VPS, Docker, Cloud Host)",
+	"author": "tiendung-c & antigravity",
 	"license": "GPL-3.0-only",
 	"type": "commonjs",
 	"engines": {
-		"node": ">=24"
+		"node": ">=20"
 	},
 	"scripts": {
-		"icon": "node tools/make-icon.js",
-		"clean": "node tools/clean.js",
-		"build:bot": "tsc -p tsconfig.build.json",
-		"postinstall": "node tools/make-icon.js",
-		"dev": "npm run build:bot && electron .",
-		"start": "electron .",
-		"build": "node tools/build.js",
-		"build:installer": "npm run build:bot && electron-builder --win nsis"
-	},
-	"devDependencies": {
-		"@types/node": "^24.10.1",
-		"discord-api-types": "^0.38.42",
-		"electron": "^38.0.0",
-		"electron-builder": "^26.0.12",
-		"typescript": "^5.8.3"
+		"dev:server": "tsx watch server/index.ts",
+		"dev:client": "vite",
+		"dev": "npm run dev:server",
+		"build:client": "vite build",
+		"build:server": "tsc -p tsconfig.server.json",
+		"build": "npm run build:client && npm run build:server",
+		"start": "node dist/server/index.js",
+		"clean": "node -e \"const fs = require('fs'); ['dist', '.cache'].forEach(p => fs.rmSync(p, {recursive: true, force: true}))\""
 	},
 	"dependencies": {
 		"@discordjs/core": "2.4.0",
 		"@discordjs/rest": "2.6.0",
 		"@discordjs/ws": "2.0.4",
-		"undici": "^6.24.1"
+		"canvas-confetti": "^1.9.4",
+		"clsx": "^2.1.1",
+		"cors": "^2.8.5",
+		"discord-api-types": "^0.38.42",
+		"express": "^4.21.2",
+		"lucide-react": "^0.475.0",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1",
+		"undici": "^6.24.1",
+		"ws": "^8.18.0"
 	},
-	"build": {
-		"appId": "com.tiendung.autoquest",
-		"productName": "AutoQuest",
-		"asar": true,
-		"npmRebuild": false,
-		"compression": "maximum",
-		"directories": {
-			"output": "release",
-			"buildResources": "resources"
-		},
-		"files": [
-			"electron/**/*",
-			"package.json"
-		],
-		"extraResources": [
-			{
-				"from": "resources/icon.ico",
-				"to": "icon.ico"
-			}
-		],
-		"win": {
-			"target": [
-				{
-					"target": "portable",
-					"arch": [
-						"x64"
-					]
-				}
-			],
-			"icon": "resources/icon.ico",
-			"artifactName": "AutoQuest-${version}-x64-portable.${ext}"
-		},
-		"portable": {
-			"unicode": true,
-			"requestExecutionLevel": "user",
-			"artifactName": "AutoQuest-${version}-x64-portable.${ext}"
-		},
-		"nsis": {
-			"oneClick": false,
-			"perMachine": false,
-			"allowToChangeInstallationDirectory": true,
-			"createDesktopShortcut": true,
-			"shortcutName": "AutoQuest"
-		}
+	"devDependencies": {
+		"@types/canvas-confetti": "^1.9.0",
+		"@types/cors": "^2.8.17",
+		"@types/express": "^4.17.21",
+		"@types/node": "^22.10.0",
+		"@types/react": "^18.3.18",
+		"@types/react-dom": "^18.3.5",
+		"@types/ws": "^8.5.14",
+		"@vitejs/plugin-react": "^4.3.4",
+		"autoprefixer": "^10.4.20",
+		"postcss": "^8.5.2",
+		"tailwindcss": "^3.4.17",
+		"tsx": "^4.19.3",
+		"typescript": "^5.7.3",
+		"vite": "^6.1.0"
 	}
 }

@@ -1,0 +1,241 @@
+export type Language = 'vi' | 'en';
+
+export const translations = {
+  vi: {
+    // Header
+    brand: 'AutoQuest',
+    subtitle: 'Tự động làm Discord Quests trên nền tảng Web',
+    statusReady: 'Sẵn sàng',
+    statusStarting: 'Đang kết nối...',
+    statusRunning: 'Đang cày nhiệm vụ',
+    statusStopping: 'Đang dừng...',
+    statusError: 'Có lỗi xảy ra',
+    guideBtn: 'Hướng dẫn',
+    doingQuestStatus: 'Doing Quest ✔',
+
+    // Stats Overview
+    statTotal: 'Tổng nhiệm vụ',
+    statRunning: 'Đang thực hiện',
+    statCompleted: 'Đã hoàn thành',
+    statTimeSaved: 'Thời gian tiết kiệm',
+    minutesUnit: 'phút',
+
+    // Security Banner
+    securityTitle: 'Bảo mật phiên tuyệt đối (Zero Persistence):',
+    securityDesc:
+      'Token và API Key chỉ lưu tạm trong bộ nhớ RAM của phiên duyệt hiện tại. Đóng tab hoặc bấm F5 (reload), toàn bộ dữ liệu tự hủy ngay lập tức không để lại dấu vết.',
+
+    // Token & Session Card
+    tokenLabel: 'Token Discord của bạn',
+    tokenPlaceholder: 'Dán token Discord (dạng xxx.yyy.zzz)...',
+    tokenValid: 'Định dạng hợp lệ ✔',
+    tokenInvalid: 'Chưa đúng chuẩn 3 đoạn',
+    pasteBtn: 'Dán',
+    clearBtn: 'Xóa RAM',
+    showToken: 'Hiện',
+    hideToken: 'Ẩn',
+    pastedToast: 'Đã dán token thành công!',
+    clearedToast: 'Đã xóa sạch token khỏi bộ nhớ RAM.',
+    emptyTokenError: 'Vui lòng nhập Token Discord.',
+    invalidTokenError: 'Token cần có định dạng 3 đoạn xxx.yyy.zzz.',
+
+    // Options
+    customStatusToggle: "Đổi trạng thái Discord thành:",
+    parallelModeToggle: 'Làm nhiều quest cùng lúc (Chế độ Song Song)',
+    parallelModeDesc: 'Chạy đồng thời tất cả nhiệm vụ để rút ngắn tối đa thời gian hoàn thành.',
+
+    // Advanced & Captcha Solver
+    advancedSettings: 'Cài đặt nâng cao & Auto CAPTCHA (Tùy chọn)',
+    captchaEnable: 'Tự động giải CAPTCHA khi nhận thưởng (Optional)',
+    captchaProvider: 'Nhà cung cấp CAPTCHA',
+    captchaApiKey: 'API Key giải CAPTCHA',
+    captchaApiKeyPlaceholder: 'Dán API Key nhà cung cấp (CapSolver / 2Captcha / Anti-Captcha)...',
+    captchaHint: 'Nếu không nhập API key, bot vẫn cày 100% tiến độ và bạn có thể vào app Discord nhận quà thủ công.',
+
+    // Action Buttons
+    startBtn: 'BẮT ĐẦU CÀY QUEST',
+    startingBtn: 'Đang xử lý...',
+    stopBtn: 'DỪNG LẠI',
+
+    // Profile Card
+    verifiedAccount: 'Tài khoản đã xác thực',
+    onlineStatus: 'Trực tuyến',
+    copyId: 'Sao chép ID',
+    copiedId: 'Đã chép!',
+
+    // Quests Board
+    questBoardTitle: 'Danh sách nhiệm vụ',
+    questBoardSubtitle: 'Theo dõi tiến trình và trạng thái các nhiệm vụ theo thời gian thực',
+    tabAll: 'Tất cả',
+    tabRunning: 'Đang chạy',
+    tabDone: 'Đã xong',
+    tabRateLimit: 'Rate Limit',
+    emptyQuestsTitle: 'Không có nhiệm vụ nào',
+    emptyQuestsDesc: 'Nhập Token Discord và bấm "Bắt đầu cày quest" để quét danh sách nhiệm vụ.',
+    badgeRunning: 'Đang chạy',
+    badgeDone: 'Đã xong',
+    badgeRateLimit: 'Rate Limit',
+    badgePending: 'Chờ thực hiện',
+    claimRewardBtn: 'Nhận phần thưởng',
+    rateLimitHint: 'Mở app Discord, bấm "Nhận nhiệm vụ" rồi bấm Bắt đầu lại trên web để hoàn thành.',
+
+    // Terminal
+    terminalTitle: 'Nhật ký hệ thống (Live Logs)',
+    terminalLines: 'dòng',
+    searchLogsPlaceholder: 'Tìm kiếm log...',
+    filterAll: 'Tất cả mức độ',
+    filterSystem: 'Hệ thống [SYS]',
+    filterInfo: 'Thông tin [INFO]',
+    filterSuccess: 'Thành công [OK]',
+    filterWarn: 'Cảnh báo [WARN]',
+    filterError: 'Lỗi [ERR]',
+    autoScrollTitle: 'Tự động cuộn',
+    clearLogsTitle: 'Xóa nhật ký',
+    downloadLogsTitle: 'Tải file nhật ký (.txt)',
+    emptyLogs: 'Chưa có nhật ký ghi nhận. Nhập token và bắt đầu.',
+
+    // Guide Modal
+    guideModalTitle: 'Hướng dẫn sử dụng & Bảo mật',
+    guideModalSubtitle: 'Cách lấy token, giải quyết rate-limit và chính sách an toàn',
+    guideStep1Title: 'Cách lấy token Discord trong 10 giây',
+    guideStep1_1: 'Mở Discord trên trình duyệt web tại',
+    guideStep1_2: 'Nhấn phím F12 (hoặc Ctrl + Shift + I) để mở Developer Tools.',
+    guideStep1_3: 'Chuyển sang tab Console, dán đoạn mã bên dưới rồi nhấn Enter:',
+    copyCodeBtn: 'Sao chép mã',
+    copiedCodeBtn: 'Đã chép!',
+    tokenClipboardNotice: '✔ Token sẽ tự động được sao chép vào Clipboard. Bạn chỉ cần sang AutoQuest bấm "Dán".',
+    rateLimitTitle: 'Cách xử lý khi bị giới hạn (Rate-Limit 429)',
+    rateLimitDesc: 'Discord giới hạn mỗi tài khoản chỉ nhận được 1 quest mới qua API mỗi ~45 phút. Cách khắc phục:',
+    rateLimitStep1: '1. Mở app Discord (hoặc trang web Discord).',
+    rateLimitStep2: '2. Vào mục Quests (Nhiệm vụ) bấm "Nhận nhiệm vụ" (Accept Quest) bằng tay.',
+    rateLimitStep3: '3. Quay lại AutoQuest Web bấm "Bắt đầu cày quest", bot sẽ cày tiếp ngay lập tức!',
+    securityModalTitle: 'Cam kết bảo mật tuyệt đối (Ephemeral In-Memory)',
+    securityModalDesc1: 'AutoQuest Web hoạt động với nguyên tắc Zero-Persistence:',
+    securityModalDesc2: 'Token & API Key chỉ lưu trong RAM tạm thời.',
+    securityModalDesc3: 'Đóng tab, thoát trình duyệt hoặc F5 (reload), toàn bộ dữ liệu biến mất hoàn toàn.',
+    securityModalDesc4: 'Không bao giờ ghi vào database, ổ cứng, cookie hay LocalStorage.',
+
+    // Footer
+    footerVersion: 'AutoQuest Web • Phiên bản 2.0 (Local / VPS / Host)',
+    footerSecurity: 'Bảo mật RAM phiên • Tự xóa token khi đóng/tải lại trang',
+  },
+
+  en: {
+    // Header
+    brand: 'AutoQuest',
+    subtitle: 'Automate Discord Quests on the Web',
+    statusReady: 'Ready',
+    statusStarting: 'Connecting...',
+    statusRunning: 'Doing Quests',
+    statusStopping: 'Stopping...',
+    statusError: 'Error Occurred',
+    guideBtn: 'Guide',
+    doingQuestStatus: 'Doing Quest ✔',
+
+    // Stats Overview
+    statTotal: 'Total Quests',
+    statRunning: 'In Progress',
+    statCompleted: 'Completed',
+    statTimeSaved: 'Time Saved',
+    minutesUnit: 'mins',
+
+    // Security Banner
+    securityTitle: 'Zero-Persistence Ephemeral Security:',
+    securityDesc:
+      'Tokens and API Keys are stored strictly in session RAM. Closing the tab or pressing F5 (reload) purges all sensitive data instantly with zero trace.',
+
+    // Token & Session Card
+    tokenLabel: 'Your Discord Token',
+    tokenPlaceholder: 'Paste your Discord token (format xxx.yyy.zzz)...',
+    tokenValid: 'Valid Format ✔',
+    tokenInvalid: 'Needs 3 segments',
+    pasteBtn: 'Paste',
+    clearBtn: 'Clear RAM',
+    showToken: 'Show',
+    hideToken: 'Hide',
+    pastedToast: 'Token pasted successfully!',
+    clearedToast: 'Token scrubbed from RAM memory.',
+    emptyTokenError: 'Please enter your Discord Token.',
+    invalidTokenError: 'Token must follow the 3-segment format: xxx.yyy.zzz.',
+
+    // Options
+    customStatusToggle: 'Set Discord custom status to:',
+    parallelModeToggle: 'Run multiple quests concurrently (Parallel Mode)',
+    parallelModeDesc: 'Run all available quests at the same time to save maximum time.',
+
+    // Advanced & Captcha Solver
+    advancedSettings: 'Advanced Settings & Auto CAPTCHA (Optional)',
+    captchaEnable: 'Auto-solve CAPTCHA when claiming rewards (Optional)',
+    captchaProvider: 'CAPTCHA Provider',
+    captchaApiKey: 'CAPTCHA API Key',
+    captchaApiKeyPlaceholder: 'Paste provider API Key (CapSolver / 2Captcha / Anti-Captcha)...',
+    captchaHint: 'Optional. If left blank, you can still claim completed quests manually inside Discord.',
+
+    // Action Buttons
+    startBtn: 'START AUTO QUEST',
+    startingBtn: 'Processing...',
+    stopBtn: 'STOP',
+
+    // Profile Card
+    verifiedAccount: 'Authenticated Account',
+    onlineStatus: 'Online',
+    copyId: 'Copy ID',
+    copiedId: 'Copied!',
+
+    // Quests Board
+    questBoardTitle: 'Quests Dashboard',
+    questBoardSubtitle: 'Monitor real-time progress and status of all Discord quests',
+    tabAll: 'All',
+    tabRunning: 'Running',
+    tabDone: 'Completed',
+    tabRateLimit: 'Rate Limited',
+    emptyQuestsTitle: 'No Quests Available',
+    emptyQuestsDesc: 'Enter your Discord Token and click "Start Auto Quest" to scan for available quests.',
+    badgeRunning: 'Running',
+    badgeDone: 'Claimed',
+    badgeRateLimit: 'Rate Limit',
+    badgePending: 'Pending',
+    claimRewardBtn: 'Claim Reward',
+    rateLimitHint: 'Open Discord app, click "Accept Quest", then restart AutoQuest Web.',
+
+    // Terminal
+    terminalTitle: 'System Console (Live Logs)',
+    terminalLines: 'lines',
+    searchLogsPlaceholder: 'Search logs...',
+    filterAll: 'All Levels',
+    filterSystem: 'System [SYS]',
+    filterInfo: 'Info [INFO]',
+    filterSuccess: 'Success [OK]',
+    filterWarn: 'Warning [WARN]',
+    filterError: 'Error [ERR]',
+    autoScrollTitle: 'Auto Scroll',
+    clearLogsTitle: 'Clear Console',
+    downloadLogsTitle: 'Export Log (.txt)',
+    emptyLogs: 'No logs recorded yet. Enter token and start.',
+
+    // Guide Modal
+    guideModalTitle: 'User Guide & Security',
+    guideModalSubtitle: 'How to extract token, bypass rate-limits, and security policies',
+    guideStep1Title: 'How to get your Discord Token in 10 seconds',
+    guideStep1_1: 'Open Discord in your browser at',
+    guideStep1_2: 'Press F12 (or Ctrl + Shift + I) to open Developer Tools.',
+    guideStep1_3: 'Switch to the Console tab, paste the code below, and press Enter:',
+    copyCodeBtn: 'Copy Script',
+    copiedCodeBtn: 'Copied!',
+    tokenClipboardNotice: '✔ Token will be automatically copied to your clipboard. Click "Paste" on AutoQuest.',
+    rateLimitTitle: 'How to bypass Discord Rate-Limit (429)',
+    rateLimitDesc: 'Discord limits accounts to enrolling in 1 quest per ~45 minutes via API. To bypass:',
+    rateLimitStep1: '1. Open the Discord app or website.',
+    rateLimitStep2: '2. Go to Quests and click "Accept Quest" manually.',
+    rateLimitStep3: '3. Return to AutoQuest Web and click "Start Auto Quest" to finish immediately!',
+    securityModalTitle: 'Zero-Persistence Security Guarantee',
+    securityModalDesc1: 'AutoQuest Web operates under strict in-memory principles:',
+    securityModalDesc2: 'Tokens & API keys are kept strictly in session RAM.',
+    securityModalDesc3: 'Closing tab or pressing F5 immediately wipes all data with zero trace.',
+    securityModalDesc4: 'Never saved to database, disk, cookies, or LocalStorage.',
+
+    // Footer
+    footerVersion: 'AutoQuest Web • Version 2.0 (Local / VPS / Host)',
+    footerSecurity: 'Ephemeral RAM Security • Token purges instantly on tab close/reload',
+  },
+};

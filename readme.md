@@ -1,123 +1,133 @@
-# AutoQuest — Tự động làm nhiệm vụ Discord trên máy tính (Bản GUI)
+# ⚡ AutoQuest Web — Tự Động Làm Nhiệm Vụ Discord Trên Nền Tảng Web
 
-**AutoQuest** là ứng dụng desktop Windows chạy **100% local** trên máy tính, sở hữu **giao diện đồ họa (GUI) tiếng Việt** trực quan, giúp tự động hoá việc đăng ký và hoàn thành các **Discord Quests** đang mở. Bạn chỉ cần nhập token, bấm **Bắt đầu**, ứng dụng sẽ tự động xử lý và cập nhật tiến trình theo thời gian thực.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/tiendung-c/AutoQuest/main/resources/icon.png" width="90" height="90" alt="AutoQuest Web Logo" />
+</p>
 
-> [!CAUTION]
-> **Khuyến cáo an toàn.** Việc tự động hoá trên tài khoản người dùng có thể vi phạm
-> [Điều khoản dịch vụ của Discord](https://discord.com/terms). Khuyến khích sử dụng trên **tài khoản phụ** và **tự chịu trách nhiệm** về rủi ro tài khoản.
-
----
-
-## 🌟 Tính năng nổi bật
-
-- 🖥️ **Giao diện hiện đại, dễ dùng:** Không cần cấu hình file `.env` hay cài đặt môi trường phức tạp. Nhập token và chạy ngay chỉ với 1 click.
-- ⚡ **Tự động làm nhiều loại nhiệm vụ:**
-  - `WATCH_VIDEO` / `WATCH_VIDEO_ON_MOBILE`: Tự động giả lập xem video hoàn thành nhanh.
-  - `PLAY_ON_DESKTOP` / `PLAY_ON_XBOX` / `PLAY_ON_PLAYSTATION`: Tự động gửi tín hiệu giả lập chơi game trên PC/Console đủ thời lượng yêu cầu.
-  - `PLAY_ACTIVITY` / `ACHIEVEMENT_IN_ACTIVITY`: Tự động hoàn thành các nhiệm vụ hoạt động và thành tựu trong Discord.
-- 🎁 **Tự động nhận quà (Claim Rewards):** Tự động nhận thưởng ngay sau khi làm xong hoặc nhận thưởng cho các quest đã hoàn thành trước đó.
-- 🛡️ **Xử lý giới hạn tần suất thông minh (Anti-RateLimit):** Tự động kiểm soát tần suất gọi API, không làm treo ứng dụng khi Discord giới hạn lượt nhận quest mới.
-- 🔒 **Bảo mật token:** Token được mã hoá an toàn bằng khóa bảo mật của Windows (DPAPI), không lưu mật mã dưới dạng văn bản thô.
-- 🔔 **Hỗ trợ Discord Webhook:** Tùy chọn gửi thông báo tự động về kênh Discord của bạn khi hoàn thành mỗi nhiệm vụ.
+<p align="center">
+  <b>Phiên bản Web thế hệ mới</b>: Giao diện Minimalist Dark tinh tế, hỗ trợ Song ngữ (Tiếng Việt / English), làm nhiều quest cùng lúc (Parallel Mode), tích hợp tự động giải CAPTCHA (CapSolver / 2Captcha / Anti-Captcha), bảo mật RAM-only tuyệt đối và tự động cập nhật trạng thái Discord <code>"Doing Quest ✔"</code>.
+</p>
 
 ---
 
-## 1. Hướng dẫn sử dụng (File chạy ngay không cần cài đặt)
+## 🌟 Những Điểm Cải Tiến Vượt Trội
 
-Bạn có thể tải file chạy trực tiếp từ mục **Releases** trên GitHub hoặc tự đóng gói từ mã nguồn:
+### 1. 🌐 Hỗ Trợ Song Ngữ (Tiếng Việt 🇻🇳 & English 🇺🇸)
+- Nút chuyển đổi ngôn ngữ nhanh chóng ngay trên thanh điều hướng.
+- Toàn bộ giao diện, trạng thái, nhật ký và modal hướng dẫn đều hỗ trợ đầy đủ 2 ngôn ngữ.
 
-- **Tải trực tiếp:** Tải phiên bản mới nhất tại [AutoQuest Releases](https://github.com/tiendung-c/AutoQuest/releases) (file `AutoQuest-1.0.0-x64-portable.exe`).
-- **Tự đóng gói:** Chạy `npm run build`, file `.exe` sẽ được tạo trong thư mục `release/`.
+### 2. ⚡ Làm Nhiều Nhiệm Vụ Cùng Lúc (Chế Độ Song Song / Parallel Mode)
+- **Cày đồng thời nhiều quest:** Tự động chạy song song tất cả các nhiệm vụ khả dụng thay vì phải chờ từng quest hoàn thành.
+- **Hệ thống giãn cách thông minh (Staggered Offsets):** Tự động lệch nhịp gửi tín hiệu 1.5s giữa các nhiệm vụ để tránh trùng lặp nhịp tim và không kích hoạt Rate-Limit của Discord.
+- Tùy chọn chuyển đổi linh hoạt giữa chế độ **Song song** (mặc định) và **Tuần tự**.
 
-**Các bước sử dụng:**
-1. Khởi chạy file **`AutoQuest-1.0.0-x64-portable.exe`**.
-2. Nếu Windows SmartScreen hiển thị cảnh báo file mới build, chọn: **More info** → **Run anyway**.
-3. Dán **Token Discord** của bạn vào ô nhập (hỗ trợ nút **Dán** tự động trích xuất token từ clipboard).
-4. *(Tuỳ chọn)* Nhập **Webhook URL** nếu muốn nhận thông báo khi làm xong quest.
-5. Bấm **Bắt đầu** và theo dõi tiến trình thực hiện ở danh sách nhiệm vụ và khung nhật ký.
-6. Bấm **Dừng** bất cứ lúc nào nếu muốn tạm dừng.
+### 3. 🧩 Tự Động Giải CAPTCHA Khi Nhận Thưởng (Auto-Solve CAPTCHA - Tùy Chọn)
+- Khi hoàn thành 100% tiến độ nhiệm vụ, một số quest yêu cầu xác thực hCaptcha để nhận thưởng.
+- **Hỗ trợ 3 nhà cung cấp giải CAPTCHA hàng đầu:**
+  - **CapSolver** (Khuyên dùng cho Discord hCaptcha)
+  - **2Captcha**
+  - **Anti-Captcha**
+- **Tính năng hoàn toàn tùy chọn (Optional):**
+  - Nếu có API Key: Bot tự động gửi giải CAPTCHA và nhận quà ngay lập tức.
+  - Nếu không có: Bot vẫn cày xong 100% tiến độ và thông báo bạn mở app Discord nhận quà thủ công.
+  - **Bảo mật API Key:** API Key giải CAPTCHA cũng được lưu tạm trong RAM và tự xóa sạch khi tải lại/đóng trang!
 
----
+### 4. 🎨 Giao Diện Minimalist Dark Hiện Đại & Tinh Tế
+- Loại bỏ màu mè chói mắt, hướng đến phong cách thiết kế tối giản, cao cấp tương tự Linear, Vercel và Raycast.
+- Nền vũ trụ hạt sao nhẹ nhàng, chuyển động mượt mà, không gây mỏi mắt.
+- Bảng nhật ký Console chuẩn studio có chức năng tìm kiếm từ khóa, lọc theo mức độ log, khóa cuộn và xuất file `.txt`.
 
-## 2. Cách lấy token Discord cá nhân
+### 5. 🔒 Bảo Mật Phiên Tuyệt Đối (Zero Persistence — Bay Màu Khi Reload)
+- **Không lưu trữ bất kỳ dữ liệu nào:** Token Discord và API Key CAPTCHA không bao giờ được ghi vào `localStorage`, `sessionStorage`, `cookies`, hay ổ cứng.
+- Token chỉ tồn tại trong bộ nhớ RAM của phiên duyệt hiện tại.
+- Khi người dùng **tắt trình duyệt, đóng tab hoặc bấm F5 (Reload)**, dữ liệu tự hủy ngay lập tức không để lại bất kỳ dấu vết nào.
+- Nút **"🧹 Xóa RAM"** giúp xóa ngay lập tức khỏi bộ nhớ chỉ với 1 click.
+- Tự động mã hóa/che token trong toàn bộ hệ thống log (`[TOKEN_PROTECTED]`).
 
-> [!WARNING]
-> **Bảo mật tài khoản:** Token đại diện cho quyền truy cập tài khoản của bạn. Tuyệt đối không chia sẻ token cho người khác. Nếu nghi ngờ lộ token, hãy đổi mật khẩu Discord ngay để vô hiệu hoá token cũ.
-
-Cách lấy token qua trình duyệt (Chrome, Edge, Brave...):
-
-1. Truy cập [discord.com/app](https://discord.com/app) và đăng nhập tài khoản Discord.
-2. Bấm phím **F12** (hoặc `Ctrl + Shift + I`) để mở Công cụ cho nhà phát triển (DevTools).
-3. Chuyển sang tab **Console** .
-4. Dán script vào
-```
-window.webpackChunkdiscord_app.push([
-	[Symbol()],
-	{},
-	req => {
-		if (!req.c) return;
-		for (let m of Object.values(req.c)) {
-			try {
-				if (!m.exports || m.exports === window) continue;
-				if (m.exports?.getToken) return copy(m.exports.getToken());
-				for (let ex in m.exports) {
-					if (m.exports?.[ex]?.getToken && m.exports[ex][Symbol.toStringTag] !== 'IntlMessagesProxy') return copy(m.exports[ex].getToken());
-				}
-			} catch {}
-		}
-	},
-]);
-window.webpackChunkdiscord_app.pop();
-console.log('%cWorked!', 'font-size: 50px');
-console.log(`%cYou now have your token in the clipboard!`, 'font-size: 16px');
-
-```
----
-
-## 3. Các loại nhiệm vụ được hỗ trợ
-
-| Loại nhiệm vụ | Cơ chế xử lý |
-| :--- | :--- |
-| `WATCH_VIDEO` / `WATCH_VIDEO_ON_MOBILE` | Giả lập xem video tiến độ nhanh |
-| `PLAY_ON_DESKTOP` | Giả lập chơi game trên máy tính (Heartbeat định kỳ) |
-| `PLAY_ON_XBOX` / `PLAY_ON_PLAYSTATION` | Giả lập chơi game trên Console |
-| `PLAY_ACTIVITY` | Giả lập hoạt động cuộc gọi thoại |
-| `ACHIEVEMENT_IN_ACTIVITY` | Cấp quyền và xác nhận hoàn thành thành tựu |
-| `STREAM_ON_DESKTOP` | *Không hỗ trợ tự động (cần mở Discord chia sẻ màn hình thủ công)* |
+### 6. 🏷️ Tự Động Đặt Trạng Thái Discord: "Doing Quest ✔"
+- Tự động cập nhật Custom Status của tài khoản Discord thành `Doing Quest ✔` qua cả **Gateway WebSocket** và **REST API User Settings**.
+- Tự động xóa trạng thái khi hoàn tất hoặc bấm Dừng.
 
 ---
 
-## 4. Xử lý các tình huống thường gặp
+## 🛠️ Hướng Dẫn Cài Đặt & Khởi Chạy
 
-- **Bị giới hạn nhận quest (`RateLimit`):** Discord giới hạn mỗi tài khoản chỉ được nhận 1 quest mới qua API mỗi ~45 phút. Khi gặp thông báo này, bạn chỉ cần mở Discord lên và bấm **"Nhận nhiệm vụ" (Accept Quest)** cho các nhiệm vụ muốn làm, sau đó bấm **Bắt đầu** lại trên AutoQuest là bot sẽ cày tiếp ngay lập tức.
-- **Yêu cầu Captcha khi nhận thưởng:** Một số nhiệm vụ Discord yêu cầu xác minh Captcha khi bấm nhận thưởng. Với các nhiệm vụ này, bot đã hoàn thành 100% tiến độ, bạn chỉ cần vào mục Gift Inventory (Kho quà) trên Discord bấm nút Nhận phần thưởng để giải captcha và nhận quà.
-- **Token không hợp lệ:** Kiểm tra lại token Discord đã copy đúng định dạng chưa (gồm 3 đoạn ngăn cách bởi dấu chấm).
+Yêu cầu môi trường: **Node.js >= 20** (hoặc Docker).
 
----
+### Cách 1: Chạy trực tiếp (Local hoặc VPS)
 
-## 5. Dành cho lập trình viên (Chạy từ mã nguồn)
-
-Yêu cầu: **Node.js 20+**, môi trường Windows 64-bit.
-
-```powershell
-# Cài đặt các thư viện phụ thuộc
+```bash
+# 1. Cài đặt các thư viện cần thiết
 npm install
 
-# Chạy ứng dụng ở chế độ phát triển (Development)
-npm run dev
-
-# Đóng gói ứng dụng thành file portable .exe
+# 2. Build ứng dụng (biên dịch React client & TypeScript server)
 npm run build
+
+# 3. Khởi chạy máy chủ Web
+npm start
 ```
 
-Các lệnh tiện ích khác:
-- `npm run build:bot`: Biên dịch TypeScript cho lõi bot.
-- `npm run icon`: Tự động tạo lại bộ icon ứng dụng (`resources/`).
-- `npm run clean`: Dọn dẹp các thư mục build tạm thời.
+👉 Mở trình duyệt và truy cập: **`http://localhost:3000`** (hoặc `http://<IP-VPS>:3000`).
+
+*(Tùy chọn đổi cổng: `$env:PORT=3001; npm start` trên PowerShell hoặc `PORT=3001 npm start` trên Linux).*
 
 ---
 
-## 6. Giấy phép
+### Cách 2: Chạy chế độ phát triển (Development)
 
-Dự án được phân phối dưới giấy phép **GPL-3.0 License**. Chi tiết xem tại file `LICENSE`.
+```bash
+npm run dev
+```
 
+---
+
+### Cách 3: Chạy bằng Docker / Docker Compose
+
+```bash
+docker compose up -d --build
+```
+
+---
+
+## 🔑 Hướng Dẫn Lấy Token Discord Cá Nhân
+
+1. Mở Discord trên trình duyệt web (Chrome, Edge, Brave...) tại [discord.com/app](https://discord.com/app).
+2. Nhấn phím **F12** (hoặc `Ctrl + Shift + I`) để mở **Developer Tools**.
+3. Chuyển sang thẻ **Console**.
+4. Dán đoạn mã sau và nhấn **Enter**:
+
+```javascript
+window.webpackChunkdiscord_app.push([
+  [Symbol()],
+  {},
+  req => {
+    if (!req.c) return;
+    for (let m of Object.values(req.c)) {
+      try {
+        if (!m.exports || m.exports === window) continue;
+        if (m.exports?.getToken) return copy(m.exports.getToken());
+        for (let ex in m.exports) {
+          if (m.exports?.[ex]?.getToken && m.exports[ex][Symbol.toStringTag] !== 'IntlMessagesProxy') return copy(m.exports[ex].getToken());
+        }
+      } catch {}
+    }
+  },
+]);
+window.webpackChunkdiscord_app.pop();
+console.log('%cĐã sao chép token vào Clipboard!', 'color: #5865F2; font-size: 20px;');
+```
+
+5. Token đã nằm sẵn trong Clipboard, bạn chỉ cần vào **AutoQuest Web** và bấm nút **"Dán"**.
+
+---
+
+## 💡 Xử Lý Khi Gặp RateLimit 429
+
+- Discord giới hạn mỗi tài khoản chỉ nhận được 1 quest mới qua API mỗi ~45 phút.
+- Khi gặp thông báo này, bạn chỉ cần mở Discord lên và bấm **"Nhận nhiệm vụ" (Accept Quest)** bằng tay cho các nhiệm vụ muốn làm, sau đó quay lại AutoQuest Web bấm **Bắt đầu cày quest** là bot sẽ cày xong ngay lập tức!
+
+---
+
+## 📄 Giấy Phép (License)
+
+Dự án được phân phối theo giấy phép **GPL-3.0 License**. Chi tiết xem tại file `LICENSE`.
