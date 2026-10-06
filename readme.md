@@ -1,23 +1,23 @@
-# ⚡ EZDQ — Easy Discord Quest (Web Platform)
+# EZDQ — Easy Discord Quest (Web Platform)
 
 <p align="center">
-  <b>EZDQ (Easy Discord Quest) Web</b>: Giao diện Minimalist Dark tinh tế, hỗ trợ Song ngữ (Tiếng Việt / English), làm nhiều quest cùng lúc (Parallel Mode), tích hợp tự động giải CAPTCHA (CapSolver / 2Captcha / Anti-Captcha), bảo mật RAM-only tuyệt đối và tự động cập nhật trạng thái Discord <code>"Doing Quest ✔ • https://ezdisquest.nx.kg/"</code>.
+  <b>EZDQ (Easy Discord Quest) Web</b>: Giao diện Minimalist Dark tinh tế, hỗ trợ Song ngữ (Tiếng Việt / English), làm nhiều quest cùng lúc (Parallel Mode), tích hợp tự động giải CAPTCHA (CapSolver / 2Captcha / Anti-Captcha), bảo mật RAM-only tuyệt đối và tự động cập nhật trạng thái Discord.
 </p>
 
 ---
 
-## 🌟 Những Điểm Cải Tiến Vượt Trội
+## Những Điểm Cải Tiến Vượt Trội
 
-### 1. 🌐 Hỗ Trợ Song Ngữ (Tiếng Việt 🇻🇳 & English 🇺🇸)
+### 1. Hỗ Trợ Song Ngữ (Tiếng Việt 🇻🇳 & English 🇺🇸)
 - Nút chuyển đổi ngôn ngữ nhanh chóng ngay trên thanh điều hướng.
 - Toàn bộ giao diện, trạng thái, nhật ký và modal hướng dẫn đều hỗ trợ đầy đủ 2 ngôn ngữ.
 
-### 2. ⚡ Làm Nhiều Nhiệm Vụ Cùng Lúc (Chế Độ Song Song / Parallel Mode)
+### 2. Làm Nhiều Nhiệm Vụ Cùng Lúc (Chế Độ Song Song / Parallel Mode)
 - **Cày đồng thời nhiều quest:** Tự động chạy song song tất cả các nhiệm vụ khả dụng thay vì phải chờ từng quest hoàn thành.
 - **Hệ thống giãn cách thông minh (Staggered Offsets):** Tự động lệch nhịp gửi tín hiệu 1.5s giữa các nhiệm vụ để tránh trùng lặp nhịp tim và không kích hoạt Rate-Limit của Discord.
 - Tùy chọn chuyển đổi linh hoạt giữa chế độ **Song song** (mặc định) và **Tuần tự**.
 
-### 3. 🧩 Tự Động Giải CAPTCHA Khi Nhận Thưởng (Auto-Solve CAPTCHA - Tùy Chọn)
+### 3. Tự Động Giải CAPTCHA Khi Nhận Thưởng (Auto-Solve CAPTCHA - Tùy Chọn)
 - Khi hoàn thành 100% tiến độ nhiệm vụ, một số quest yêu cầu xác thực hCaptcha để nhận thưởng.
 - **Hỗ trợ 3 nhà cung cấp giải CAPTCHA hàng đầu:**
   - **CapSolver** (Khuyên dùng cho Discord hCaptcha)
@@ -28,21 +28,17 @@
   - Nếu không có: Bot vẫn cày xong 100% tiến độ và thông báo bạn mở app Discord nhận quà thủ công.
   - **Bảo mật API Key:** API Key giải CAPTCHA cũng được lưu tạm trong RAM và tự xóa sạch khi tải lại/đóng trang!
 
-### 4. 🎨 Giao Diện Minimalist Dark Hiện Đại & Tinh Tế
-- Loại bỏ màu mè chói mắt, hướng đến phong cách thiết kế tối giản, cao cấp tương tự Linear, Vercel và Raycast.
-- Nền vũ trụ hạt sao nhẹ nhàng, chuyển động mượt mà, không gây mỏi mắt.
-- Bảng nhật ký Console chuẩn studio có chức năng tìm kiếm từ khóa, lọc theo mức độ log, khóa cuộn và xuất file `.txt`.
-
-### 5. 🔒 Bảo Mật Phiên Tuyệt Đối (Zero Persistence — Bay Màu Khi Reload)
+### 5. Bảo Mật Phiên Tuyệt Đối (Zero Persistence — Bay Màu Khi Reload)
 - **Không lưu trữ bất kỳ dữ liệu nào:** Token Discord và API Key CAPTCHA không bao giờ được ghi vào `localStorage`, `sessionStorage`, `cookies`, hay ổ cứng.
 - Token chỉ tồn tại trong bộ nhớ RAM của phiên duyệt hiện tại.
 - Khi người dùng **tắt trình duyệt, đóng tab hoặc bấm F5 (Reload)**, dữ liệu tự hủy ngay lập tức không để lại bất kỳ dấu vết nào.
-- Nút **"🧹 Xóa RAM"** giúp xóa ngay lập tức khỏi bộ nhớ chỉ với 1 click.
+- Nút **" Xóa RAM"** giúp xóa ngay lập tức khỏi bộ nhớ chỉ với 1 click.
 - Tự động mã hóa/che token trong toàn bộ hệ thống log (`[TOKEN_PROTECTED]`).
 
-### 6. 🏷️ Tự Động Đặt Trạng Thái Discord: "Doing Quest ✔ • https://ezdisquest.nx.kg/"
-- Tự động cập nhật Custom Status của tài khoản Discord thành `Doing Quest ✔ • https://ezdisquest.nx.kg/` qua cả **Gateway WebSocket** và **REST API User Settings** (đính kèm link web để quảng bá).
+### 6. Tự Động Đặt Trạng Thái Discord
+- Tự động cập nhật Custom Status của tài khoản Discord qua cả **Gateway WebSocket** và **REST API User Settings**.
 - Tự động xóa trạng thái khi hoàn tất hoặc bấm Dừng.
+- Có thể tùy chỉnh trang thái lúc làm quest tùy thích
 
 ---
 
@@ -63,7 +59,7 @@ npm run build
 npm start
 ```
 
-👉 Mở trình duyệt và truy cập: **`http://localhost:3000`** (hoặc `http://<IP-VPS>:3000`).
+Mở trình duyệt và truy cập: **`http://localhost:3000`** (hoặc `http://<IP-VPS>:3000`).
 
 *(Tùy chọn đổi cổng: `$env:PORT=3001; npm start` trên PowerShell hoặc `PORT=3001 npm start` trên Linux).*
 
@@ -85,7 +81,7 @@ docker compose up -d --build
 
 ---
 
-## 🔑 Hướng Dẫn Lấy Token Discord Cá Nhân
+## Hướng Dẫn Lấy Token Discord Cá Nhân
 
 1. Mở Discord trên trình duyệt web (Chrome, Edge, Brave...) tại [discord.com/app](https://discord.com/app).
 2. Nhấn phím **F12** (hoặc `Ctrl + Shift + I`) để mở **Developer Tools**.
@@ -117,13 +113,13 @@ console.log('%cĐã sao chép token vào Clipboard!', 'color: #5865F2; font-size
 
 ---
 
-## 💡 Xử Lý Khi Gặp RateLimit 429
+## Xử Lý Khi Gặp RateLimit 429
 
 - Discord giới hạn mỗi tài khoản chỉ nhận được 1 quest mới qua API mỗi ~45 phút.
 - Khi gặp thông báo này, bạn chỉ cần mở Discord lên và bấm **"Nhận nhiệm vụ" (Accept Quest)** bằng tay cho các nhiệm vụ muốn làm, sau đó quay lại AutoQuest Web bấm **Bắt đầu cày quest** là bot sẽ cày xong ngay lập tức!
 
 ---
 
-## 📄 Giấy Phép (License)
+## Giấy Phép (License)
 
 Dự án được phân phối theo giấy phép **GPL-3.0 License**. Chi tiết xem tại file `LICENSE`.
