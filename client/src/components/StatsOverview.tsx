@@ -18,7 +18,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({ quests, lang }) =>
   // Calculate estimated time saved
   const timeSavedMinutes = quests.reduce((acc, q) => {
     if (q.status === 'done' || q.status === 'claimed') {
-      const minutes = Math.round((q.targetSeconds || 900) / 60);
+      const minutes = Math.ceil((q.secondsNeeded || 900) / 60);
       return acc + minutes;
     }
     return acc;

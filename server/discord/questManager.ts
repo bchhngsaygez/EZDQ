@@ -145,10 +145,11 @@ export class QuestManager implements Iterable<Quest> {
       ) || 'PLAY_ON_DESKTOP';
 
       const secondsNeeded = taskConfig.tasks[taskName]?.target || 0;
-      const secondsDone = quest.userStatus?.progress?.[taskName]?.value || 0;
       const enrolled = quest.isEnrolledQuest();
       const claimed = quest.hasClaimedRewards();
       const completed = quest.isCompleted();
+      const rawDone = quest.userStatus?.progress?.[taskName]?.value || 0;
+      const secondsDone = (claimed || completed) ? secondsNeeded : rawDone;
 
       let status: QuestItemState['status'] = 'pending';
       if (claimed || completed) status = 'done';
@@ -482,10 +483,23 @@ export class QuestManager implements Iterable<Quest> {
 
           quest.updateUserStatus(res);
           secondsDone = Math.min(secondsNeeded, timestamp);
+
+          // If Discord already marked completion or timestamp reaches target, snap to 100%
+          if (res.completed_at != null || secondsDone >= secondsNeeded) {
+            secondsDone = secondsNeeded;
+          }
+
+          const currentPercent = Math.min(100, Math.round((secondsDone / secondsNeeded) * 100));
+
           this.emit({
             type: 'quest:progress',
             data: { name: questName, id: quest.id, secondsDone, secondsNeeded },
           });
+
+          this.log(
+            `🎬 Tiến trình xem video "${questName}": ${secondsDone}/${secondsNeeded}s (${currentPercent}%).`,
+            currentPercent >= 100 ? 'success' : 'info',
+          );
 
           if (res.completed_at != null || secondsDone >= secondsNeeded) {
             break;
@@ -511,7 +525,13 @@ export class QuestManager implements Iterable<Quest> {
       /* ignore */
     }
 
-    this.log(`✨ Hoàn thành video nhiệm vụ "${questName}"!`, 'success');
+    // Always emit 100% progress before completing
+    this.emit({
+      type: 'quest:progress',
+      data: { name: questName, id: quest.id, secondsDone: secondsNeeded, secondsNeeded },
+    });
+
+    this.log(`✨ Hoàn thành xem video nhiệm vụ "${questName}" (100%)!`, 'success');
     await this.redeemQuest(quest);
   }
 
@@ -533,7 +553,7 @@ export class QuestManager implements Iterable<Quest> {
     const initialDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
     let lastKnownDone = initialDone;
 
-    while (!quest.isCompleted() && lastKnownDone < secondsNeeded && !this.isAborted) {
+    while (lastKnownDone < secondsNeeded && !this.isAborted) {
       try {
         const res = await this.client.rest.post(
           `/quests/${quest.id}/heartbeat`,
@@ -553,9 +573,18 @@ export class QuestManager implements Iterable<Quest> {
         const estimatedDone = Math.min(secondsNeeded, initialDone + heartbeatCount * interval);
         lastKnownDone = Math.min(secondsNeeded, Math.max(serverDone, estimatedDone));
 
+        // If Discord already verified completion OR we reached the target, snap to 100%
+        if (quest.isCompleted() || lastKnownDone >= secondsNeeded) {
+          lastKnownDone = secondsNeeded;
+        }
+
+        const currentMins = Math.floor(lastKnownDone / 60);
+        const totalMins = Math.ceil(secondsNeeded / 60);
+        const currentPercent = Math.min(100, Math.round((lastKnownDone / secondsNeeded) * 100));
+
         this.log(
-          `🕹️ Đã gửi tín hiệu game "${applicationName}". Tiến độ: ${Math.floor(lastKnownDone / 60)}/${Math.ceil(secondsNeeded / 60)} phút (${Math.floor((lastKnownDone / secondsNeeded) * 100)}%).`,
-          'info',
+          `🕹️ Đã gửi tín hiệu game "${applicationName}". Tiến độ: ${currentMins}/${totalMins} phút (${currentPercent}%).`,
+          currentPercent >= 100 ? 'success' : 'info',
         );
 
         this.emit({
@@ -600,7 +629,13 @@ export class QuestManager implements Iterable<Quest> {
       /* ignore terminal error */
     }
 
-    this.log(`✨ Hoàn thành chơi game nhiệm vụ "${questName}"!`, 'success');
+    // Always emit 100% progress before completing
+    this.emit({
+      type: 'quest:progress',
+      data: { name: questName, id: quest.id, secondsDone: secondsNeeded, secondsNeeded },
+    });
+
+    this.log(`✨ Hoàn thành chơi game nhiệm vụ "${questName}" (100%)!`, 'success');
     await this.redeemQuest(quest);
   }
 
@@ -623,7 +658,7 @@ export class QuestManager implements Iterable<Quest> {
     const initialDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
     let lastKnownDone = initialDone;
 
-    while (!quest.isCompleted() && lastKnownDone < secondsNeeded && !this.isAborted) {
+    while (lastKnownDone < secondsNeeded && !this.isAborted) {
       try {
         const res = await this.client.rest.post(
           `/quests/${quest.id}/heartbeat`,
@@ -639,9 +674,18 @@ export class QuestManager implements Iterable<Quest> {
         const estimatedDone = Math.min(secondsNeeded, initialDone + heartbeatCount * interval);
         lastKnownDone = Math.min(secondsNeeded, Math.max(serverDone, estimatedDone));
 
+        // If Discord already verified completion OR we reached the target, snap to 100%
+        if (quest.isCompleted() || lastKnownDone >= secondsNeeded) {
+          lastKnownDone = secondsNeeded;
+        }
+
+        const currentMins = Math.floor(lastKnownDone / 60);
+        const totalMins = Math.ceil(secondsNeeded / 60);
+        const currentPercent = Math.min(100, Math.round((lastKnownDone / secondsNeeded) * 100));
+
         this.log(
-          `📞 Tín hiệu hoạt động "${applicationName}". Tiến độ: ${Math.floor(lastKnownDone / 60)}/${Math.ceil(secondsNeeded / 60)} phút (${Math.floor((lastKnownDone / secondsNeeded) * 100)}%).`,
-          'info',
+          `📞 Tín hiệu hoạt động "${applicationName}". Tiến độ: ${currentMins}/${totalMins} phút (${currentPercent}%).`,
+          currentPercent >= 100 ? 'success' : 'info',
         );
 
         this.emit({
@@ -683,7 +727,13 @@ export class QuestManager implements Iterable<Quest> {
       /* ignore */
     }
 
-    this.log(`✨ Hoàn thành hoạt động nhiệm vụ "${questName}"!`, 'success');
+    // Always emit 100% progress before completing
+    this.emit({
+      type: 'quest:progress',
+      data: { name: questName, id: quest.id, secondsDone: secondsNeeded, secondsNeeded },
+    });
+
+    this.log(`✨ Hoàn thành hoạt động nhiệm vụ "${questName}" (100%)!`, 'success');
     await this.redeemQuest(quest);
   }
 

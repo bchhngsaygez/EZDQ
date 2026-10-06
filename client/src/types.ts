@@ -44,6 +44,8 @@ export interface QuestItemState {
   claimed: boolean;
 }
 
+export type Quest = QuestItemState;
+
 export type ServerEvent =
   | { type: 'state'; data: { state: BotState; message?: string } }
   | { type: 'login'; data: UserProfile }

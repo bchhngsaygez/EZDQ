@@ -136,8 +136,19 @@ export const QuestList: React.FC<QuestListProps> = ({ quests, onClaimQuest, lang
             const isRunning = quest.status === 'running';
             const isRateLimit = quest.status === 'error' && quest.reason?.includes('429');
 
-            const percent = Math.min(100, Math.max(0, Math.round(quest.progress || 0)));
-            const durationMinutes = Math.round((quest.targetSeconds || 900) / 60);
+            const targetSeconds = quest.secondsNeeded || 900;
+            const currentSeconds = isDone ? targetSeconds : (quest.secondsDone || 0);
+            const percent = isDone
+              ? 100
+              : targetSeconds > 0
+              ? Math.min(100, Math.max(0, Math.round((currentSeconds / targetSeconds) * 100)))
+              : 0;
+            const durationMinutes = Math.ceil(targetSeconds / 60);
+
+            const iconUrl = quest.icon;
+            const gameTitle = quest.application || 'Discord Quest';
+            const questTitle = quest.name;
+            const rewardName = quest.rewardName;
 
             return (
               <div
@@ -157,10 +168,10 @@ export const QuestList: React.FC<QuestListProps> = ({ quests, onClaimQuest, lang
                   <div className="flex items-center gap-3.5 min-w-0 flex-1">
                     {/* Game Avatar/Icon */}
                     <div className="w-12 h-12 rounded-xl bg-white/[0.05] border border-white/[0.08] overflow-hidden shrink-0 flex items-center justify-center relative">
-                      {quest.iconUrl ? (
+                      {iconUrl ? (
                         <img
-                          src={quest.iconUrl}
-                          alt={quest.gameTitle}
+                          src={iconUrl}
+                          alt={gameTitle}
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -172,7 +183,7 @@ export const QuestList: React.FC<QuestListProps> = ({ quests, onClaimQuest, lang
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 truncate">
-                          {quest.gameTitle || 'Discord Quest'}
+                          {gameTitle}
                         </span>
                         <span className="text-white/20 text-xs">•</span>
                         <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
@@ -182,14 +193,14 @@ export const QuestList: React.FC<QuestListProps> = ({ quests, onClaimQuest, lang
                       </div>
 
                       <h4 className="text-sm font-bold text-white truncate mt-0.5 group-hover:text-indigo-300 transition-colors">
-                        {quest.title}
+                        {questTitle}
                       </h4>
 
                       {/* Reward chip */}
-                      {quest.reward && (
+                      {rewardName && (
                         <div className="text-[11px] text-amber-300/90 flex items-center gap-1 mt-0.5">
                           <Gift className="w-3 h-3 text-amber-400 shrink-0" />
-                          <span className="truncate">{quest.reward}</span>
+                          <span className="truncate">{rewardName}</span>
                         </div>
                       )}
                     </div>
