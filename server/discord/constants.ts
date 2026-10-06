@@ -4,6 +4,8 @@ export class Constants extends null {
   static readonly USER_AGENT =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) discord/1.0.9259 Chrome/148.0.7778.280 Electron/42.11.4 Safari/537.36';
 
+  static readonly DEFAULT_CUSTOM_STATUS = 'Doing Quest ✔ • https://ezdisquest.nx.kg/';
+
   static readonly Properties = {
     os: 'Windows',
     browser: 'Discord Client',

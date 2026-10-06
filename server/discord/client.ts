@@ -122,10 +122,12 @@ export class ClientQuest extends Client {
   }
 
   /**
-   * Set custom status on Discord: "Doing Quest ✔"
+   * Set custom status on Discord: "Doing Quest ✔ • https://ezdisquest.nx.kg/"
    * Sets via both Gateway Presence and REST User Settings
    */
-  async setDoingQuestStatus(statusText = 'Doing Quest ✔'): Promise<boolean> {
+  async setDoingQuestStatus(
+    statusText = Constants.DEFAULT_CUSTOM_STATUS,
+  ): Promise<boolean> {
     let success = false;
 
     // 1. Gateway Presence Update (Realtime across all connected clients)

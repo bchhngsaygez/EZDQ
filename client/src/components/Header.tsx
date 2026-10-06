@@ -71,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-base font-bold text-white tracking-tight">
-                AutoQuest <span className="text-indigo-400 font-medium">Web</span>
+                EZDQ <span className="text-indigo-400 font-medium">Web</span>
               </span>
               <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/[0.06] text-slate-400 border border-white/[0.06]">
                 v2.0

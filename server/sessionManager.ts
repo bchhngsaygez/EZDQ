@@ -4,6 +4,7 @@ import { ClientQuest } from './discord/client';
 import { QuestManager } from './discord/questManager';
 import { ServerEvent, LogLevel, CaptchaConfig } from './types';
 import { Utils } from './discord/utils';
+import { Constants } from './discord/constants';
 
 export class UserSession {
   public readonly id: string;
@@ -101,12 +102,13 @@ export class UserSession {
         // Set Discord Custom Status if requested
         if (this.setStatus) {
           try {
-            await this.client?.setDoingQuestStatus('Doing Quest ✔');
+            const statusText = Constants.DEFAULT_CUSTOM_STATUS;
+            await this.client?.setDoingQuestStatus(statusText);
             this.send({
               type: 'status_update',
-              data: { text: 'Doing Quest ✔', active: true },
+              data: { text: statusText, active: true },
             });
-            this.log('🏷️ Đã cập nhật trạng thái Discord: "Doing Quest ✔"', 'success');
+            this.log(`🏷️ Đã cập nhật trạng thái Discord: "${statusText}"`, 'success');
           } catch (e: any) {
             this.log(`⚠️ Không thể đặt trạng thái: ${e?.message}`, 'warn');
           }

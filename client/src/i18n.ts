@@ -3,7 +3,7 @@ export type Language = 'vi' | 'en';
 export const translations = {
   vi: {
     // Header
-    brand: 'AutoQuest',
+    brand: 'EZDQ',
     subtitle: 'Tự động làm Discord Quests trên nền tảng Web',
     statusReady: 'Sẵn sàng',
     statusStarting: 'Đang kết nối...',
@@ -11,7 +11,7 @@ export const translations = {
     statusStopping: 'Đang dừng...',
     statusError: 'Có lỗi xảy ra',
     guideBtn: 'Hướng dẫn',
-    doingQuestStatus: 'Doing Quest ✔',
+    doingQuestStatus: 'Doing Quest ✔ • ezdisquest.nx.kg',
 
     // Stats Overview
     statTotal: 'Tổng nhiệm vụ',
@@ -122,7 +122,7 @@ export const translations = {
 
   en: {
     // Header
-    brand: 'AutoQuest',
+    brand: 'EZDQ',
     subtitle: 'Automate Discord Quests on the Web',
     statusReady: 'Ready',
     statusStarting: 'Connecting...',
@@ -130,7 +130,7 @@ export const translations = {
     statusStopping: 'Stopping...',
     statusError: 'Error Occurred',
     guideBtn: 'Guide',
-    doingQuestStatus: 'Doing Quest ✔',
+    doingQuestStatus: 'Doing Quest ✔ • ezdisquest.nx.kg',
 
     // Stats Overview
     statTotal: 'Total Quests',

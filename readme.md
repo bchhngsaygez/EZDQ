@@ -1,7 +1,7 @@
 # ⚡ EZDQ — Easy Discord Quest (Web Platform)
 
 <p align="center">
-  <b>EZDQ (Easy Discord Quest) Web</b>: Giao diện Minimalist Dark tinh tế, hỗ trợ Song ngữ (Tiếng Việt / English), làm nhiều quest cùng lúc (Parallel Mode), tích hợp tự động giải CAPTCHA (CapSolver / 2Captcha / Anti-Captcha), bảo mật RAM-only tuyệt đối và tự động cập nhật trạng thái Discord <code>"Doing Quest ✔"</code>.
+  <b>EZDQ (Easy Discord Quest) Web</b>: Giao diện Minimalist Dark tinh tế, hỗ trợ Song ngữ (Tiếng Việt / English), làm nhiều quest cùng lúc (Parallel Mode), tích hợp tự động giải CAPTCHA (CapSolver / 2Captcha / Anti-Captcha), bảo mật RAM-only tuyệt đối và tự động cập nhật trạng thái Discord <code>"Doing Quest ✔ • https://ezdisquest.nx.kg/"</code>.
 </p>
 
 ---
@@ -40,8 +40,8 @@
 - Nút **"🧹 Xóa RAM"** giúp xóa ngay lập tức khỏi bộ nhớ chỉ với 1 click.
 - Tự động mã hóa/che token trong toàn bộ hệ thống log (`[TOKEN_PROTECTED]`).
 
-### 6. 🏷️ Tự Động Đặt Trạng Thái Discord: "Doing Quest ✔"
-- Tự động cập nhật Custom Status của tài khoản Discord thành `Doing Quest ✔` qua cả **Gateway WebSocket** và **REST API User Settings**.
+### 6. 🏷️ Tự Động Đặt Trạng Thái Discord: "Doing Quest ✔ • https://ezdisquest.nx.kg/"
+- Tự động cập nhật Custom Status của tài khoản Discord thành `Doing Quest ✔ • https://ezdisquest.nx.kg/` qua cả **Gateway WebSocket** và **REST API User Settings** (đính kèm link web để quảng bá).
 - Tự động xóa trạng thái khi hoàn tất hoặc bấm Dừng.
 
 ---

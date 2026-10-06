@@ -207,10 +207,10 @@ export const TokenSessionCard: React.FC<TokenSessionCardProps> = ({
               disabled={isBusy}
               className="w-4 h-4 rounded bg-slate-900 border-white/20 text-indigo-600 focus:ring-0 cursor-pointer accent-indigo-600"
             />
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 flex-wrap">
               <span>{t.customStatusToggle}</span>
               <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-medium text-xs">
-                Doing Quest ✔
+                {t.doingQuestStatus}
               </span>
             </span>
           </label>
