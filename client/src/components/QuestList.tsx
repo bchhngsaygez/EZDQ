@@ -9,18 +9,17 @@ import {
   ExternalLink,
   ChevronRight,
   Layers,
-  Check,
 } from 'lucide-react';
 import { Quest } from '../types';
 import { Language, translations } from '../i18n';
 
 interface QuestListProps {
   quests: Quest[];
-  onClaimQuest: (questId: string) => void;
+  onClaimQuest?: (questId: string) => void;
   lang: Language;
 }
 
-export const QuestList: React.FC<QuestListProps> = ({ quests, onClaimQuest, lang }) => {
+export const QuestList: React.FC<QuestListProps> = ({ quests, lang }) => {
   const t = translations[lang];
   const [activeFilter, setActiveFilter] = useState<'all' | 'running' | 'done' | 'available'>('all');
 
@@ -227,25 +226,6 @@ export const QuestList: React.FC<QuestListProps> = ({ quests, onClaimQuest, lang
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/[0.04] text-slate-400 border border-white/[0.08] text-xs font-medium">
                         <span>{t.badgePending}</span>
-                      </span>
-                    )}
-
-                    {/* Claim Button */}
-                    {isDone && quest.status !== 'claimed' && (
-                      <button
-                        type="button"
-                        onClick={() => onClaimQuest(quest.id)}
-                        className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs shadow-lg shadow-emerald-500/25 transition-all flex items-center gap-1 active:scale-95"
-                      >
-                        <Gift className="w-3.5 h-3.5" />
-                        <span>{t.claimRewardBtn}</span>
-                      </button>
-                    )}
-
-                    {quest.status === 'claimed' && (
-                      <span className="text-xs font-mono text-emerald-400 flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                        <Check className="w-3 h-3" />
-                        <span>Claimed</span>
                       </span>
                     )}
                   </div>
