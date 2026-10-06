@@ -1,20 +1,37 @@
 import React from 'react';
-import { HelpCircle, Activity, Zap, Globe } from 'lucide-react';
-import { BotState } from '../types';
+import {
+  Zap,
+  Terminal as TerminalIcon,
+  BookOpen,
+  Volume2,
+  VolumeX,
+  Github,
+  Gamepad2,
+  ExternalLink,
+} from 'lucide-react';
+import { QuestState } from '../types';
 import { Language, translations } from '../i18n';
 
+export type WorkspaceTab = 'quests' | 'terminal' | 'guide';
+
 interface HeaderProps {
-  state: BotState;
-  customStatusActive: boolean;
-  onOpenGuide: () => void;
+  state: QuestState;
+  activeTab: WorkspaceTab;
+  onTabChange: (tab: WorkspaceTab) => void;
+  logCount: number;
+  notificationEnabled: boolean;
+  onToggleNotification: (enabled: boolean) => void;
   lang: Language;
   onToggleLang: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   state,
-  customStatusActive,
-  onOpenGuide,
+  activeTab,
+  onTabChange,
+  logCount,
+  notificationEnabled,
+  onToggleNotification,
   lang,
   onToggleLang,
 }) => {
@@ -22,111 +39,184 @@ export const Header: React.FC<HeaderProps> = ({
 
   const getStatusBadge = () => {
     switch (state) {
-      case 'starting':
-        return (
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/25 animate-pulse shadow-sm shadow-amber-500/10">
-            <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-            <span>{t.statusStarting}</span>
-          </span>
-        );
       case 'running':
-        return (
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 shadow-sm shadow-emerald-500/10">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span>{t.statusRunning}</span>
-          </span>
-        );
+        return {
+          label: t.statusRunning,
+          color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25',
+          dot: 'bg-emerald-400 animate-ping',
+        };
+      case 'starting':
+        return {
+          label: t.statusStarting,
+          color: 'text-amber-400 bg-amber-500/10 border-amber-500/25',
+          dot: 'bg-amber-400 animate-pulse',
+        };
       case 'stopping':
-        return (
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/25">
-            <span className="w-2 h-2 rounded-full bg-rose-400"></span>
-            <span>{t.statusStopping}</span>
-          </span>
-        );
+        return {
+          label: t.statusStopping,
+          color: 'text-rose-400 bg-rose-500/10 border-rose-500/25',
+          dot: 'bg-rose-400 animate-pulse',
+        };
       case 'error':
-        return (
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/25">
-            <span className="w-2 h-2 rounded-full bg-rose-400"></span>
-            <span>{t.statusError}</span>
-          </span>
-        );
+        return {
+          label: t.statusError,
+          color: 'text-rose-400 bg-rose-500/10 border-rose-500/25',
+          dot: 'bg-rose-400',
+        };
       default:
-        return (
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-white/[0.04] text-slate-300 border border-white/[0.08]">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-            <span>{t.statusReady}</span>
-          </span>
-        );
+        return {
+          label: t.statusReady,
+          color: 'text-slate-400 bg-white/[0.04] border-white/[0.08]',
+          dot: 'bg-slate-400',
+        };
     }
   };
 
+  const status = getStatusBadge();
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-white/[0.07] bg-[#07090E]/85 backdrop-blur-xl transition-all">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand / Logo */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/10 text-indigo-400 border border-indigo-500/30 shadow-lg shadow-indigo-500/10">
-            <Zap className="w-4.5 h-4.5 text-indigo-400" />
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+    <header className="sticky top-0 z-40 w-full border-b border-white/[0.07] bg-[#050609]/90 backdrop-blur-xl transition-all">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        {/* Brand & Live Status */}
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
+            <Zap className="w-5 h-5 fill-current" />
           </div>
-          <div>
+
+          <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <span className="text-base font-extrabold tracking-tight text-white flex items-center gap-1.5">
-                <span>EZDQ</span>
-                <span className="text-indigo-400 font-semibold text-xs px-1.5 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20">
-                  WEB
-                </span>
+              <span className="font-extrabold text-base tracking-tight text-white">
+                EZDQ
               </span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.05] text-slate-400 border border-white/[0.06] hidden sm:inline-block">
-                v2.0
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/[0.06] text-slate-400 border border-white/[0.08]">
+                Studio v2.5
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 hidden md:block leading-none mt-0.5">
-              {t.subtitle}
-            </p>
+            <span className="text-[11px] text-slate-500 hidden sm:inline">
+              Discord Quests Automation Engine
+            </span>
+          </div>
+
+          {/* Live Status Pill */}
+          <div
+            className={`hidden md:inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold border ${status.color} transition-all ml-2`}
+          >
+            <span className="relative flex h-2 w-2">
+              <span
+                className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${status.dot}`}
+              />
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${status.dot}`} />
+            </span>
+            <span>{status.label}</span>
           </div>
         </div>
 
-        {/* Right Actions: Status Pill, Language Switcher, Guide */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
-          {/* Discord Status preview pill */}
-          {customStatusActive && (
-            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 shadow-sm shadow-emerald-500/10">
-              <Activity className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-              <span className="truncate max-w-[200px]">{t.doingQuestStatus}</span>
-            </div>
-          )}
+        {/* Central Workspace Tab Navigation */}
+        <nav className="flex items-center p-1 rounded-2xl bg-[#090B10] border border-white/[0.07] text-xs font-medium">
+          {/* Quests Tab */}
+          <button
+            type="button"
+            onClick={() => onTabChange('quests')}
+            className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-xl transition-all ${
+              activeTab === 'quests'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-bold'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+            }`}
+          >
+            <Gamepad2 className="w-3.5 h-3.5" />
+            <span>{lang === 'vi' ? 'Nhiệm vụ' : 'Missions'}</span>
+          </button>
 
-          {/* Status Badge */}
-          {getStatusBadge()}
+          {/* Terminal Tab */}
+          <button
+            type="button"
+            onClick={() => onTabChange('terminal')}
+            className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-xl transition-all ${
+              activeTab === 'terminal'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-bold'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+            }`}
+          >
+            <TerminalIcon className="w-3.5 h-3.5" />
+            <span>{lang === 'vi' ? 'Nhật ký' : 'Terminal'}</span>
+            {logCount > 0 && (
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                  activeTab === 'terminal'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-white/[0.08] text-slate-400'
+                }`}
+              >
+                {logCount}
+              </span>
+            )}
+          </button>
 
-          {/* Language Switcher (Vector based, No Emoji) */}
+          {/* Guide Tab */}
+          <button
+            type="button"
+            onClick={() => onTabChange('guide')}
+            className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-xl transition-all ${
+              activeTab === 'guide'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-bold'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>{t.guideBtn}</span>
+          </button>
+        </nav>
+
+        {/* Quick Tools & Repo Link */}
+        <div className="flex items-center gap-2">
+          {/* Audio Chime Notification Toggle */}
+          <button
+            type="button"
+            onClick={() => onToggleNotification(!notificationEnabled)}
+            className={`p-2 rounded-xl border transition-all ${
+              notificationEnabled
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25 hover:bg-emerald-500/20'
+                : 'bg-white/[0.03] text-slate-500 border-white/[0.06] hover:text-slate-300 hover:bg-white/[0.06]'
+            }`}
+            title={
+              notificationEnabled
+                ? lang === 'vi'
+                  ? 'Đang bật chuông thông báo'
+                  : 'Audio notifications active'
+                : lang === 'vi'
+                  ? 'Chuông thông báo đang tắt'
+                  : 'Audio notifications muted'
+            }
+            aria-label="Toggle notifications audio"
+          >
+            {notificationEnabled ? (
+              <Volume2 className="w-4 h-4" />
+            ) : (
+              <VolumeX className="w-4 h-4" />
+            )}
+          </button>
+
+          {/* Language Switcher */}
           <button
             type="button"
             onClick={onToggleLang}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] transition-all min-h-[38px] active:scale-[0.97]"
-            title={lang === 'vi' ? 'Switch to English' : 'Chuyển sang Tiếng Việt'}
-            aria-label="Toggle language"
+            className="px-2.5 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] text-xs font-mono font-bold text-slate-300 hover:text-white transition-all flex items-center gap-1.5"
+            title={lang === 'vi' ? 'Chuyển sang tiếng Anh' : 'Switch to Vietnamese'}
           >
-            <Globe className="w-3.5 h-3.5 text-slate-400" />
-            <span className="font-mono text-[11px] font-bold tracking-wider">
-              {lang === 'vi' ? 'VIE' : 'ENG'}
-            </span>
+            <span>{lang === 'vi' ? 'VIE' : 'ENG'}</span>
           </button>
 
-          {/* Guide Button */}
-          <button
-            type="button"
-            onClick={onOpenGuide}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] transition-all min-h-[38px] active:scale-[0.97]"
-            aria-label={t.guideBtn}
+          {/* GitHub Repo Link */}
+          <a
+            href="https://github.com/bchhngsaygez/EZDQ"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] text-slate-400 hover:text-white transition-all hidden sm:flex items-center"
+            title="GitHub Repository"
+            aria-label="GitHub Repository"
           >
-            <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="hidden sm:inline">{t.guideBtn}</span>
-          </button>
+            <Github className="w-4 h-4" />
+          </a>
         </div>
       </div>
     </header>

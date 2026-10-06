@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
-import { User, Copy, Check, ShieldCheck, Activity } from 'lucide-react';
-import { UserProfile } from '../types';
+import {
+  Copy,
+  Check,
+  ShieldCheck,
+  Radio,
+  User,
+  Sparkles,
+} from 'lucide-react';
+import { DiscordProfile } from '../types';
 import { Language, translations } from '../i18n';
 
 interface DiscordProfileCardProps {
-  profile: UserProfile | null;
+  profile: DiscordProfile | null;
   customStatusActive: boolean;
   lang: Language;
 }
@@ -17,7 +24,31 @@ export const DiscordProfileCard: React.FC<DiscordProfileCardProps> = ({
   const t = translations[lang];
   const [copied, setCopied] = useState(false);
 
-  if (!profile) return null;
+  if (!profile) {
+    return (
+      <div className="rounded-2xl bg-[#090B10] border border-white/[0.07] p-4 text-center">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-slate-500 shrink-0">
+            <User className="w-5 h-5 text-slate-400" />
+          </div>
+          <div className="text-left flex-1 min-w-0">
+            <div className="text-xs font-semibold text-white">
+              {lang === 'vi' ? 'Chưa kết nối tài khoản' : 'No Account Linked'}
+            </div>
+            <div className="text-[11px] text-slate-500 truncate mt-0.5">
+              {lang === 'vi'
+                ? 'Dán Token Discord bên dưới để kết nối'
+                : 'Paste your Discord token below to sync'}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const avatarUrl = profile.avatar
+    ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png?size=128`
+    : `https://cdn.discordapp.com/embed/avatars/${parseInt(profile.discriminator || '0', 10) % 5}.png`;
 
   const handleCopyId = () => {
     navigator.clipboard.writeText(profile.id);
@@ -26,81 +57,89 @@ export const DiscordProfileCard: React.FC<DiscordProfileCardProps> = ({
   };
 
   return (
-    <div className="relative rounded-2xl p-4 sm:p-5 glass-panel border border-white/[0.08] mb-6 overflow-hidden shadow-xl shadow-black/20">
-      {/* Background Subtle Blur Accent */}
-      <div className="absolute top-0 right-0 w-64 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="rounded-2xl bg-[#090B10] border border-white/[0.08] p-4 space-y-3.5 shadow-lg relative overflow-hidden">
+      {/* Top Profile Summary */}
+      <div className="flex items-center gap-3">
+        {/* Avatar with Status Ring */}
+        <div className="relative shrink-0">
+          <img
+            src={avatarUrl}
+            alt={profile.username}
+            className="w-12 h-12 rounded-xl object-cover ring-2 ring-indigo-500/30"
+          />
+          <span
+            className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-[#090B10]"
+            title={t.onlineStatus}
+          />
+        </div>
 
-      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        {/* Left Side: Avatar + Details */}
-        <div className="flex items-center gap-3.5">
-          {/* Avatar with Online Pulse Ring */}
-          <div className="relative shrink-0">
-            {profile.avatarUrl ? (
-              <img
-                src={profile.avatarUrl}
-                alt={profile.username}
-                className="w-12 h-12 rounded-2xl border-2 border-white/10 object-cover shadow-md"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-2xl bg-white/[0.06] border-2 border-white/10 flex items-center justify-center text-slate-300">
-                <User className="w-6 h-6" />
-              </div>
+        {/* Identity Details */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold text-sm text-white truncate">
+              {profile.global_name || profile.username}
+            </span>
+            <ShieldCheck className="w-4 h-4 text-indigo-400 shrink-0" />
+            {profile.premium_type && profile.premium_type > 0 && (
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-pink-500/20 text-pink-300 border border-pink-500/30 flex items-center gap-0.5">
+                <Sparkles className="w-2.5 h-2.5" />
+                Nitro
+              </span>
             )}
-            {/* Live Online Badge */}
-            <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-[#07090E]"></span>
+          </div>
+          <div className="text-xs text-slate-400 font-mono truncate">
+            @{profile.username}
+          </div>
+        </div>
+
+        {/* 1-Click Copy ID Button */}
+        <button
+          type="button"
+          onClick={handleCopyId}
+          className={`px-2.5 py-1 rounded-xl text-xs font-mono font-medium border transition-all flex items-center gap-1 shrink-0 ${
+            copied
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+              : 'bg-white/[0.04] text-slate-400 hover:text-white border-white/[0.08] hover:bg-white/[0.08]'
+          }`}
+          title={t.copyId}
+          aria-label="Copy User ID"
+        >
+          {copied ? (
+            <>
+              <Check className="w-3 h-3 text-emerald-300" />
+              <span>{t.copiedId}</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3 h-3" />
+              <span>ID</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Live Custom Status Chip */}
+      {customStatusActive ? (
+        <div className="rounded-xl bg-emerald-500/[0.08] border border-emerald-500/20 px-3 py-2 flex items-center gap-2.5">
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider block">
+              Discord Activity Status
+            </span>
+            <span className="text-xs font-semibold text-emerald-200 truncate block">
+              Doing Quest ✔ • https://ezdisquest.nx.kg/
             </span>
           </div>
-
-          {/* User Meta */}
-          <div>
-            <div className="flex items-center gap-2">
-              <h4 className="font-extrabold text-white text-base tracking-tight">
-                {profile.global_name || profile.username}
-              </h4>
-              <span className="text-xs text-slate-400 font-mono">@{profile.username}</span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 mt-1.5">
-              {/* Status Indicator */}
-              {customStatusActive ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/25">
-                  <Activity className="w-3 h-3 text-emerald-400 animate-pulse" />
-                  <span>{t.doingQuestStatus}</span>
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/[0.04] text-slate-300 border border-white/[0.06]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                  <span>{t.onlineStatus}</span>
-                </span>
-              )}
-
-              {/* Copy ID Button */}
-              <button
-                type="button"
-                onClick={handleCopyId}
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono text-slate-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] transition-all active:scale-[0.97]"
-                title={t.copyId}
-                aria-label={t.copyId}
-              >
-                <span>ID: {profile.id.slice(0, 6)}...{profile.id.slice(-4)}</span>
-                {copied ? (
-                  <Check className="w-3 h-3 text-emerald-400" />
-                ) : (
-                  <Copy className="w-3 h-3 text-slate-400" />
-                )}
-              </button>
-            </div>
-          </div>
         </div>
-
-        {/* Right Side: Security Badge */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs font-semibold text-indigo-300 self-start sm:self-center">
-          <ShieldCheck className="w-4 h-4 text-indigo-400" />
-          <span>{t.verifiedAccount}</span>
+      ) : (
+        <div className="rounded-xl bg-white/[0.02] border border-white/[0.05] px-3 py-1.5 flex items-center gap-2 text-[11px] text-slate-500">
+          <Radio className="w-3.5 h-3.5 text-slate-600" />
+          <span>Status broadcast standby</span>
         </div>
-      </div>
+      )}
     </div>
   );
 };

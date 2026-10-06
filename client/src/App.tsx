@@ -8,21 +8,23 @@ import {
   ShieldCheck,
   Scale,
   Sparkles,
+  Terminal,
+  ArrowRight,
 } from 'lucide-react';
 import { BackgroundCanvas } from './components/BackgroundCanvas';
-import { Header } from './components/Header';
+import { Header, WorkspaceTab } from './components/Header';
 import { StatsOverview } from './components/StatsOverview';
 import { TokenSessionCard } from './components/TokenSessionCard';
 import { DiscordProfileCard } from './components/DiscordProfileCard';
 import { QuestList } from './components/QuestList';
 import { ConsoleTerminal } from './components/ConsoleTerminal';
-import { GuideModal } from './components/GuideModal';
+import { GuideView } from './components/GuideView';
 import { useQuestSocket } from './hooks/useQuestSocket';
 import { Language, translations } from './i18n';
 
 export const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>('quests');
   const [lang, setLang] = useState<Language>('vi');
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   const t = translations[lang];
 
@@ -48,18 +50,17 @@ export const App: React.FC = () => {
     setLang((prev) => (prev === 'vi' ? 'en' : 'vi'));
   };
 
+  const latestLog = logs.length > 0 ? logs[logs.length - 1] : null;
+
   return (
-    <div className="relative min-h-screen flex flex-col justify-between selection:bg-indigo-500/25 selection:text-white antialiased font-sans bg-[#050608]">
-      {/* Subtle Refined Background */}
+    <div className="relative min-h-screen flex flex-col justify-between selection:bg-indigo-500/25 selection:text-white bg-[#040507] text-[#EDEDED]">
+      {/* Background Micro-Grid */}
       <BackgroundCanvas />
 
-      {/* Completion Notification Alert Toast / Banner */}
+      {/* Completion Toast Notification */}
       {completionBanner && (
         <div className="fixed inset-x-4 top-20 z-50 max-w-lg mx-auto animate-in fade-in slide-in-from-top-4 duration-300">
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-950/95 via-slate-900/95 to-indigo-950/95 border border-emerald-500/40 p-4 shadow-2xl backdrop-blur-2xl flex items-start gap-3.5">
-            {/* Shimmer accent line */}
-            <div className="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-shimmer" />
-
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400">
               <Sparkles className="w-5 h-5 animate-pulse" />
             </div>
@@ -97,57 +98,106 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Main Container */}
+      {/* Main Studio Shell */}
       <div className="relative z-10 flex flex-col flex-1">
-        {/* Navigation Header */}
+        {/* Studio Top Navigation Bar */}
         <Header
           state={state}
-          customStatusActive={customStatusActive}
-          onOpenGuide={() => setIsGuideOpen(true)}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          logCount={logs.length}
+          notificationEnabled={notificationEnabled}
+          onToggleNotification={toggleNotification}
           lang={lang}
           onToggleLang={handleToggleLang}
         />
 
-        {/* Content */}
-        <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1 space-y-6">
-          {/* Quick Metrics (Bento Grid) */}
-          <StatsOverview quests={quests} lang={lang} />
+        {/* Studio Body Content */}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full flex-1">
+          {activeTab === 'quests' && (
+            <div className="flex flex-col lg:flex-row items-start gap-6">
+              {/* Left Column: Mission Control Deck */}
+              <div className="w-full lg:w-[380px] shrink-0 space-y-4">
+                {/* Gamer Identity Card */}
+                <DiscordProfileCard
+                  profile={profile}
+                  customStatusActive={customStatusActive}
+                  lang={lang}
+                />
 
-          {/* Discord Gamer Passport Profile Card */}
-          <DiscordProfileCard profile={profile} customStatusActive={customStatusActive} lang={lang} />
+                {/* Session & Automation Engine Control */}
+                <TokenSessionCard
+                  state={state}
+                  onStart={startQuest}
+                  onStop={stopQuest}
+                  onReset={resetSession}
+                  errorMessage={errorMessage}
+                  lang={lang}
+                  notificationEnabled={notificationEnabled}
+                  onToggleNotification={toggleNotification}
+                />
+              </div>
 
-          {/* Token & Ephemeral RAM Session Command Center */}
-          <TokenSessionCard
-            state={state}
-            onStart={startQuest}
-            onStop={stopQuest}
-            onReset={resetSession}
-            errorMessage={errorMessage}
-            lang={lang}
-            notificationEnabled={notificationEnabled}
-            onToggleNotification={toggleNotification}
-          />
+              {/* Right Column: Mission Matrix & Telemetry */}
+              <div className="flex-1 min-w-0 w-full space-y-5">
+                {/* Telemetry Metrics Ribbon */}
+                <StatsOverview quests={quests} lang={lang} />
 
-          {/* Quests Display Board */}
-          <QuestList quests={quests} onClaimQuest={claimQuest} lang={lang} />
+                {/* Mission Matrix (Quest List) */}
+                <QuestList
+                  quests={quests}
+                  onClaimQuest={claimQuest}
+                  lang={lang}
+                />
 
-          {/* Live Studio Terminal Log */}
-          <ConsoleTerminal logs={logs} onClear={clearLogs} lang={lang} />
+                {/* Quick Docked Activity Log Preview */}
+                <div
+                  onClick={() => setActiveTab('terminal')}
+                  className="rounded-2xl bg-[#090B10] border border-white/[0.07] hover:border-white/[0.12] p-3 sm:px-4 cursor-pointer transition-all flex items-center justify-between gap-3 group"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <Terminal className="w-4 h-4 text-indigo-400 shrink-0" />
+                    <span className="text-[11px] font-mono text-slate-500 shrink-0">
+                      LIVE LOG:
+                    </span>
+                    <span className="text-xs font-mono text-slate-300 truncate">
+                      {latestLog ? `[${latestLog.time}] ${latestLog.message}` : t.emptyLogs}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-xs text-indigo-400 font-semibold shrink-0 group-hover:text-indigo-300">
+                    <span>{lang === 'vi' ? 'Xem nhật ký' : 'Open Console'}</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'terminal' && (
+            <div className="max-w-5xl mx-auto space-y-4">
+              <ConsoleTerminal logs={logs} onClear={clearLogs} lang={lang} />
+            </div>
+          )}
+
+          {activeTab === 'guide' && (
+            <GuideView lang={lang} />
+          )}
         </main>
       </div>
 
-      {/* Modern Minimalist Open-Source Footer */}
-      <footer className="relative z-10 border-t border-white/[0.06] bg-[#07080B]/95 backdrop-blur-xl py-6 text-xs text-slate-400 mt-12">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-5">
+      {/* Modern Studio Footer */}
+      <footer className="relative z-10 border-t border-white/[0.06] bg-[#06070A]/95 backdrop-blur-xl py-6 text-xs text-slate-400 mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col gap-5">
           {/* Top Row: Brand, Badges & GitHub Link */}
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             {/* Left: Brand & Open Source Badges */}
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 sm:gap-2.5">
               <div className="flex items-center gap-2 font-bold text-white tracking-tight">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>{t.footerBrand}</span>
+                <span>EZDQ Studio</span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-slate-300 border border-white/[0.08]">
-                  {t.footerVersion}
+                  v2.5
                 </span>
               </div>
 
@@ -194,9 +244,6 @@ export const App: React.FC = () => {
           </div>
         </div>
       </footer>
-
-      {/* Guide & FAQ Modal */}
-      <GuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} lang={lang} />
     </div>
   );
 };
