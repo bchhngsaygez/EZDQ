@@ -8,6 +8,11 @@ import {
   ServerEvent,
   ClientMessage,
 } from '../types';
+import {
+  playCompletionChime,
+  requestNotificationPermission,
+  sendDesktopNotification,
+} from '../utils/notifications';
 
 export function useQuestSocket() {
   const [connected, setConnected] = useState(false);
@@ -17,6 +22,8 @@ export function useQuestSocket() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [customStatusActive, setCustomStatusActive] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [notificationEnabled, setNotificationEnabled] = useState(true);
+  const [completionBanner, setCompletionBanner] = useState<string | null>(null);
 
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<any>(null);
@@ -94,7 +101,10 @@ export function useQuestSocket() {
                 q.id === payload.data.id || q.name === payload.data.name
                   ? {
                       ...q,
-                      secondsDone: payload.data.secondsDone,
+                      secondsDone: Math.min(
+                        payload.data.secondsNeeded,
+                        Math.max(q.secondsDone, payload.data.secondsDone),
+                      ),
                       secondsNeeded: payload.data.secondsNeeded,
                       status: 'running' as const,
                     }
@@ -140,11 +150,23 @@ export function useQuestSocket() {
 
           case 'finish':
             setState('idle');
-            // Trigger celebration confetti
+            // 1. Play audio chime if notifications are enabled
+            if (notificationEnabled) {
+              playCompletionChime();
+              sendDesktopNotification(
+                'EZDQ — Hoàn thành tất cả nhiệm vụ!',
+                payload.data?.message || 'Tất cả nhiệm vụ Discord của bạn đã hoàn thành xuất sắc!',
+              );
+            }
+            // 2. Set completion message for in-app banner
+            setCompletionBanner(
+              payload.data?.message || 'Tất cả nhiệm vụ Discord của bạn đã hoàn thành xuất sắc!',
+            );
+            // 3. Trigger celebration confetti
             try {
               confetti({
-                particleCount: 100,
-                spread: 70,
+                particleCount: 120,
+                spread: 80,
                 origin: { y: 0.6 },
                 colors: ['#5865F2', '#57F287', '#00F0FF', '#EB459E'],
               });
@@ -190,16 +212,39 @@ export function useQuestSocket() {
     }
   }, []);
 
-  const startQuest = useCallback((token: string, setStatus = true, parallel = true, captcha?: import('../types').CaptchaConfig) => {
-    setErrorMessage(null);
-    sendMessage({
-      type: 'START',
-      token,
-      setStatus,
-      parallel,
-      captcha,
-    });
-  }, [sendMessage]);
+  const toggleNotification = useCallback(async (enabled: boolean) => {
+    setNotificationEnabled(enabled);
+    if (enabled) {
+      await requestNotificationPermission();
+    }
+  }, []);
+
+  const dismissCompletionBanner = useCallback(() => {
+    setCompletionBanner(null);
+  }, []);
+
+  const startQuest = useCallback(
+    async (
+      token: string,
+      setStatus = true,
+      parallel = true,
+      captcha?: import('../types').CaptchaConfig,
+    ) => {
+      setErrorMessage(null);
+      setCompletionBanner(null);
+      if (notificationEnabled) {
+        requestNotificationPermission().catch(() => {});
+      }
+      sendMessage({
+        type: 'START',
+        token,
+        setStatus,
+        parallel,
+        captcha,
+      });
+    },
+    [sendMessage, notificationEnabled],
+  );
 
   const stopQuest = useCallback(() => {
     sendMessage({ type: 'STOP' });
@@ -220,6 +265,7 @@ export function useQuestSocket() {
     setLogs([]);
     setCustomStatusActive(false);
     setErrorMessage(null);
+    setCompletionBanner(null);
     setState('idle');
   }, [stopQuest]);
 
@@ -231,6 +277,10 @@ export function useQuestSocket() {
     logs,
     customStatusActive,
     errorMessage,
+    notificationEnabled,
+    completionBanner,
+    toggleNotification,
+    dismissCompletionBanner,
     startQuest,
     stopQuest,
     claimQuest,

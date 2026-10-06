@@ -458,17 +458,18 @@ export class QuestManager implements Iterable<Quest> {
   ) {
     const maxFuture = 10;
     const speed = 7;
-    const interval = 7;
+    const interval = 5;
     const enrolledAt = new Date(quest.userStatus?.enrolled_at || Date.now()).getTime();
 
     this.log(`Đang giả lập xem video nhiệm vụ: "${questName}"...`, 'info');
 
     while (!this.isAborted) {
       const maxAllowed = Math.floor((Date.now() - enrolledAt) / 1000) + maxFuture;
-      const diff = maxAllowed - secondsDone;
-      const timestamp = secondsDone + speed;
+      // If enrolled in the past, allow jumping forward safely up to secondsNeeded
+      const nextTarget = Math.min(secondsNeeded, Math.max(secondsDone + speed, Math.min(maxAllowed, secondsDone + 30)));
+      const timestamp = Math.min(secondsNeeded, nextTarget);
 
-      if (diff >= speed) {
+      if (maxAllowed >= timestamp || timestamp === secondsNeeded) {
         try {
           const res = (await this.client.rest.post(
             `/quests/${quest.id}/video-progress`,
@@ -528,8 +529,11 @@ export class QuestManager implements Iterable<Quest> {
     );
 
     let consecutiveErrors = 0;
-    while (!quest.isCompleted() && !this.isAborted) {
-      const secondsDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
+    let heartbeatCount = 0;
+    const initialDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
+    let lastKnownDone = initialDone;
+
+    while (!quest.isCompleted() && lastKnownDone < secondsNeeded && !this.isAborted) {
       try {
         const res = await this.client.rest.post(
           `/quests/${quest.id}/heartbeat`,
@@ -542,17 +546,26 @@ export class QuestManager implements Iterable<Quest> {
         );
         quest.updateUserStatus(res as any);
         consecutiveErrors = 0;
-        const currentDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || secondsDone;
+        heartbeatCount++;
+
+        const serverDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
+        // Compensate for Discord API's backend aggregation lag using verified heartbeat increments
+        const estimatedDone = Math.min(secondsNeeded, initialDone + heartbeatCount * interval);
+        lastKnownDone = Math.min(secondsNeeded, Math.max(serverDone, estimatedDone));
 
         this.log(
-          `🕹️ Đã gửi tín hiệu game "${applicationName}". Tiến độ: ${Math.floor(currentDone / 60)}/${Math.ceil(secondsNeeded / 60)} phút.`,
+          `🕹️ Đã gửi tín hiệu game "${applicationName}". Tiến độ: ${Math.floor(lastKnownDone / 60)}/${Math.ceil(secondsNeeded / 60)} phút (${Math.floor((lastKnownDone / secondsNeeded) * 100)}%).`,
           'info',
         );
 
         this.emit({
           type: 'quest:progress',
-          data: { name: questName, id: quest.id, secondsDone: currentDone, secondsNeeded },
+          data: { name: questName, id: quest.id, secondsDone: lastKnownDone, secondsNeeded },
         });
+
+        if (quest.isCompleted() || lastKnownDone >= secondsNeeded) {
+          break;
+        }
       } catch (err: any) {
         consecutiveErrors++;
         const msg = err?.message || String(err);
@@ -606,8 +619,11 @@ export class QuestManager implements Iterable<Quest> {
     );
 
     let consecutiveErrors = 0;
-    while (!quest.isCompleted() && !this.isAborted) {
-      const secondsDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
+    let heartbeatCount = 0;
+    const initialDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
+    let lastKnownDone = initialDone;
+
+    while (!quest.isCompleted() && lastKnownDone < secondsNeeded && !this.isAborted) {
       try {
         const res = await this.client.rest.post(
           `/quests/${quest.id}/heartbeat`,
@@ -617,17 +633,25 @@ export class QuestManager implements Iterable<Quest> {
         );
         quest.updateUserStatus(res as any);
         consecutiveErrors = 0;
-        const currentDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || secondsDone;
+        heartbeatCount++;
+
+        const serverDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
+        const estimatedDone = Math.min(secondsNeeded, initialDone + heartbeatCount * interval);
+        lastKnownDone = Math.min(secondsNeeded, Math.max(serverDone, estimatedDone));
 
         this.log(
-          `📞 Tín hiệu hoạt động "${applicationName}". Tiến độ: ${Math.floor(currentDone / 60)}/${Math.ceil(secondsNeeded / 60)} phút.`,
+          `📞 Tín hiệu hoạt động "${applicationName}". Tiến độ: ${Math.floor(lastKnownDone / 60)}/${Math.ceil(secondsNeeded / 60)} phút (${Math.floor((lastKnownDone / secondsNeeded) * 100)}%).`,
           'info',
         );
 
         this.emit({
           type: 'quest:progress',
-          data: { name: questName, id: quest.id, secondsDone: currentDone, secondsNeeded },
+          data: { name: questName, id: quest.id, secondsDone: lastKnownDone, secondsNeeded },
         });
+
+        if (quest.isCompleted() || lastKnownDone >= secondsNeeded) {
+          break;
+        }
       } catch (err: any) {
         consecutiveErrors++;
         const msg = err?.message || String(err);

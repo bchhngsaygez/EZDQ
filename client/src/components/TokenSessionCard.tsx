@@ -14,6 +14,7 @@ import {
   Puzzle,
   AlertTriangle,
   Info,
+  Bell,
 } from 'lucide-react';
 import { BotState, CaptchaConfig } from '../types';
 import { Language, translations } from '../i18n';
@@ -25,6 +26,8 @@ interface TokenSessionCardProps {
   onReset: () => void;
   errorMessage: string | null;
   lang: Language;
+  notificationEnabled: boolean;
+  onToggleNotification: (enabled: boolean) => void;
 }
 
 export const TokenSessionCard: React.FC<TokenSessionCardProps> = ({
@@ -34,6 +37,8 @@ export const TokenSessionCard: React.FC<TokenSessionCardProps> = ({
   onReset,
   errorMessage,
   lang,
+  notificationEnabled,
+  onToggleNotification,
 }) => {
   const t = translations[lang];
 
@@ -197,7 +202,7 @@ export const TokenSessionCard: React.FC<TokenSessionCardProps> = ({
         </div>
 
         {/* Toggles Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1">
           {/* Custom Status Toggle */}
           <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-300 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/[0.02]">
             <input
@@ -227,6 +232,21 @@ export const TokenSessionCard: React.FC<TokenSessionCardProps> = ({
             <span className="flex items-center gap-1.5">
               <Cpu className="w-3.5 h-3.5 text-indigo-400" />
               <span className="font-medium text-white">{t.parallelModeToggle}</span>
+            </span>
+          </label>
+
+          {/* Completion Notification Alert & Sound Toggle */}
+          <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-300 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/[0.02]">
+            <input
+              type="checkbox"
+              checked={notificationEnabled}
+              onChange={(e) => onToggleNotification(e.target.checked)}
+              disabled={isBusy}
+              className="w-4 h-4 rounded bg-slate-900 border-white/20 text-indigo-600 focus:ring-0 cursor-pointer accent-indigo-600"
+            />
+            <span className="flex items-center gap-1.5">
+              <Bell className="w-3.5 h-3.5 text-amber-400" />
+              <span className="font-medium text-white">{t.notificationToggle}</span>
             </span>
           </label>
         </div>

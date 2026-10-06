@@ -41,8 +41,17 @@ export const translations = {
 
     // Options
     customStatusToggle: "Đổi trạng thái Discord thành:",
-    parallelModeToggle: 'Làm nhiều quest cùng lúc (Chế độ Song Song)',
+    parallelModeToggle: 'Làm nhiều quest cùng lúc (Song Song)',
     parallelModeDesc: 'Chạy đồng thời tất cả nhiệm vụ để rút ngắn tối đa thời gian hoàn thành.',
+    notificationToggle: 'Thông báo & Chuông khi hoàn thành',
+    notificationDesc: 'Tự động gửi thông báo màn hình và phát chuông khi tất cả quest hoàn tất',
+    notificationGranted: 'Đã bật thông báo',
+    notificationDenied: 'Trình duyệt đang chặn thông báo',
+    completionNotificationTitle: 'EZDQ — Hoàn thành tất cả nhiệm vụ!',
+    completionNotificationBody: 'Tất cả nhiệm vụ Discord của bạn đã hoàn thành xuất sắc!',
+    completionBannerTitle: '🎉 Tất Cả Nhiệm Vụ Đã Hoàn Thành!',
+    completionBannerDesc: 'Hệ thống đã tự động hoàn tất và nhận quà cho tất cả các nhiệm vụ. Bạn có thể đóng trang web an toàn!',
+    closeBtn: 'Đóng',
 
     // Advanced & Captcha Solver
     advancedSettings: 'Cài đặt nâng cao & Auto CAPTCHA (Tùy chọn)',
@@ -160,8 +169,17 @@ export const translations = {
 
     // Options
     customStatusToggle: 'Set Discord custom status to:',
-    parallelModeToggle: 'Run multiple quests concurrently (Parallel Mode)',
+    parallelModeToggle: 'Run multiple quests concurrently (Parallel)',
     parallelModeDesc: 'Run all available quests at the same time to save maximum time.',
+    notificationToggle: 'Notify & Chime upon completion',
+    notificationDesc: 'Send desktop notification and audio chime when all quests finish',
+    notificationGranted: 'Notifications enabled',
+    notificationDenied: 'Notifications blocked by browser',
+    completionNotificationTitle: 'EZDQ — All Quests Completed!',
+    completionNotificationBody: 'All your Discord quests have finished successfully!',
+    completionBannerTitle: '🎉 All Quests Completed!',
+    completionBannerDesc: 'The system has automated and redeemed all available quests. You can safely close this page!',
+    closeBtn: 'Close',
 
     // Advanced & Captcha Solver
     advancedSettings: 'Advanced Settings & Auto CAPTCHA (Optional)',

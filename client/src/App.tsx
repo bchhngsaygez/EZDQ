@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CheckCircle2, X } from 'lucide-react';
 import { BackgroundCanvas } from './components/BackgroundCanvas';
 import { Header } from './components/Header';
 import { StatsOverview } from './components/StatsOverview';
@@ -23,6 +24,10 @@ export const App: React.FC = () => {
     logs,
     customStatusActive,
     errorMessage,
+    notificationEnabled,
+    completionBanner,
+    toggleNotification,
+    dismissCompletionBanner,
     startQuest,
     stopQuest,
     claimQuest,
@@ -38,6 +43,39 @@ export const App: React.FC = () => {
     <div className="relative min-h-screen flex flex-col justify-between selection:bg-indigo-500/20 selection:text-white">
       {/* Subtle Refined Background */}
       <BackgroundCanvas />
+
+      {/* Completion Notification Alert / Banner */}
+      {completionBanner && (
+        <div className="fixed inset-x-4 top-18 z-50 max-w-xl mx-auto animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-950/90 to-slate-900/90 border border-emerald-500/40 p-4 shadow-2xl backdrop-blur-xl flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div className="flex-1 pr-2">
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                {t.completionBannerTitle}
+              </h4>
+              <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                {completionBanner}
+              </p>
+              <div className="mt-2.5 flex items-center gap-2">
+                <button
+                  onClick={dismissCompletionBanner}
+                  className="px-3 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 text-xs font-semibold transition-colors"
+                >
+                  {t.closeBtn}
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={dismissCompletionBanner}
+              className="text-slate-400 hover:text-white transition-colors p-1"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Container */}
       <div className="relative z-10 flex flex-col flex-1">
@@ -66,6 +104,8 @@ export const App: React.FC = () => {
             onReset={resetSession}
             errorMessage={errorMessage}
             lang={lang}
+            notificationEnabled={notificationEnabled}
+            onToggleNotification={toggleNotification}
           />
 
           {/* Quests Display Board */}
