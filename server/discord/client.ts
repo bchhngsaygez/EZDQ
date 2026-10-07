@@ -1,6 +1,6 @@
 import { Client, APIGatewayBotInfo } from '@discordjs/core';
 import { RequestInit } from 'undici';
-import { REST, DefaultRestOptions, ResponseLike } from '@discordjs/rest';
+import { REST, DefaultRestOptions, ResponseLike, RESTEvents } from '@discordjs/rest';
 import { WebSocketManager, WebSocketShard } from '@discordjs/ws';
 import { GatewaySendPayload, GatewayOpcodes, PresenceUpdateStatus } from 'discord-api-types/v10';
 import { QuestManager } from './questManager';
@@ -43,6 +43,7 @@ export class ClientQuest extends Client {
   public questManager: QuestManager | null = null;
   public websocketManager: WebSocketManager;
   public readonly token: string;
+  public onLog?: (message: string, level: 'info' | 'warn' | 'error' | 'success' | 'system') => void;
   private isDestroyed = false;
 
   constructor(token: string) {
@@ -54,9 +55,21 @@ export class ClientQuest extends Client {
       version: '10',
       makeRequest,
       rejectOnRateLimit: (info: any) => {
-        return info.retryAfter > 15000;
+        // Allow waiting up to 60 seconds automatically before rejecting
+        return info.retryAfter > 60000;
       },
     }).setToken(cleanToken);
+
+    rest.on(RESTEvents.RateLimited, (info: any) => {
+      const waitSec = Math.ceil(info.timeToReset / 1000);
+      const route = info.route || 'Discord API';
+      if (this.onLog) {
+        this.onLog(
+          `⏳ [RateLimit Discord] Endpoint ${route} đang bị giới hạn IP, tự động chờ ${waitSec}s rồi thử lại...`,
+          'warn',
+        );
+      }
+    });
 
     const gateway = new WebSocketManager({
       token: cleanToken,
@@ -200,13 +213,23 @@ export class ClientQuest extends Client {
   }
 
   async fetchQuests(fetchExcludedQuests = false): Promise<QuestManager> {
-    const response = (await this.rest.get('/quests/@me')) as AllQuestsResponse;
-    const manager = await QuestManager.fromResponse(
-      this,
-      response,
-      fetchExcludedQuests,
-    );
-    this.questManager = manager;
-    return manager;
+    try {
+      const response = (await this.rest.get('/quests/@me')) as AllQuestsResponse;
+      const manager = await QuestManager.fromResponse(
+        this,
+        response,
+        fetchExcludedQuests,
+      );
+      this.questManager = manager;
+      return manager;
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      if (msg.includes('RateLimitError') || err?.status === 429) {
+        throw new Error(
+          `RateLimitError[/quests/@me]: IP của máy chủ host (Render/Cloud) đang bị Discord giới hạn tần suất. Khắc phục: Chạy trên máy cá nhân (Localhost) hoặc cấu hình PROXY_URL.`
+        );
+      }
+      throw err;
+    }
   }
 }

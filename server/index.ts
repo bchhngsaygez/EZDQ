@@ -6,6 +6,20 @@ import fs from 'node:fs';
 import { WebSocketServer, WebSocket } from 'ws';
 import { SessionManager } from './sessionManager';
 import { ClientMessage } from './types';
+import { ProxyAgent, setGlobalDispatcher } from 'undici';
+
+// Support HTTP/HTTPS/SOCKS proxy for bypassing Cloudflare/Render datacenter rate limits
+const proxyUrl = process.env.PROXY_URL || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+if (proxyUrl) {
+  try {
+    const proxyAgent = new ProxyAgent(proxyUrl);
+    setGlobalDispatcher(proxyAgent);
+    const sanitized = proxyUrl.replace(/:[^:]*@/, ':***@');
+    console.log(`[Proxy] Outgoing HTTP requests routed via proxy: ${sanitized}`);
+  } catch (err: any) {
+    console.error(`[Proxy Error] Could not initialize ProxyAgent: ${err?.message}`);
+  }
+}
 
 const app = express();
 const server = http.createServer(app);

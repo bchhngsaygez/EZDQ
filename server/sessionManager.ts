@@ -76,6 +76,7 @@ export class UserSession {
 
     try {
       this.client = new ClientQuest(this.token);
+      this.client.onLog = (msg, lvl) => this.log(msg, lvl);
 
       this.client.once(GatewayDispatchEvents.Ready, async ({ data }) => {
         if (this.isDestroyed) return;
@@ -253,7 +254,18 @@ export class UserSession {
           }
         } catch (err: any) {
           const msg = err?.message || String(err);
-          this.log(`Lỗi khi xử lý nhiệm vụ: ${msg}`, 'error');
+          if (msg.includes('RateLimitError') || msg.includes('429')) {
+            this.log(
+              '🚫 [Discord RateLimit - Chặn IP Host]: Dải IP của server host (Render/Cloud) đang bị Discord giới hạn tần suất truy cập /quests/@me.',
+              'error',
+            );
+            this.log(
+              '💡 Cách khắc phục: Chạy app trực tiếp trên máy tính cá nhân (Localhost) để dùng IP sạch, hoặc cấu hình biến môi trường PROXY_URL.',
+              'warn',
+            );
+          } else {
+            this.log(`Lỗi khi xử lý nhiệm vụ: ${msg}`, 'error');
+          }
           this.setState('error', msg);
         }
       });
