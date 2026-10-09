@@ -7,6 +7,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { SessionManager } from './sessionManager';
 import { ClientMessage } from './types';
 import { ProxyAgent, setGlobalDispatcher } from 'undici';
+import { ProxyPoolManager } from './proxy/proxyPool';
 
 // Support HTTP/HTTPS/SOCKS proxy for bypassing Cloudflare/Render datacenter rate limits
 const proxyUrl = process.env.PROXY_URL || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
@@ -173,4 +174,8 @@ server.listen(PORT, HOST, () => {
   console.log(`🚀 Chạy tại: http://localhost:${PORT}`);
   console.log(`🔒 Bảo mật: Phiên chạy trong RAM, tự xoá khi đóng/tải lại`);
   console.log(`======================================================\n`);
+
+  // Pre-warm GitHub proxy pool in background on boot
+  ProxyPoolManager.getInstance().prewarm().catch(() => {});
 });
+
