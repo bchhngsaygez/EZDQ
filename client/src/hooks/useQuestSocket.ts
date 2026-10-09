@@ -7,6 +7,8 @@ import {
   LogEntry,
   ServerEvent,
   ClientMessage,
+  CaptchaConfig,
+  ProxyConfig,
 } from '../types';
 import {
   playCompletionChime,
@@ -228,7 +230,8 @@ export function useQuestSocket() {
       token: string,
       setStatus = true,
       parallel = true,
-      captcha?: import('../types').CaptchaConfig,
+      captcha?: CaptchaConfig,
+      proxy?: ProxyConfig,
     ) => {
       setErrorMessage(null);
       setCompletionBanner(null);
@@ -241,6 +244,7 @@ export function useQuestSocket() {
         setStatus,
         parallel,
         captcha,
+        proxy,
       });
     },
     [sendMessage, notificationEnabled],

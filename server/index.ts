@@ -108,6 +108,7 @@ wss.on('connection', (ws: WebSocket, req) => {
           msg.setStatus !== false,
           msg.parallel !== false,
           msg.captcha,
+          msg.proxy,
         );
         await session.start();
       } else if (msg.type === 'STOP') {

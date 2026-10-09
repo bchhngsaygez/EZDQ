@@ -14,13 +14,22 @@ import {
   ShieldCheck,
   CheckCircle2,
   Bot,
+  Network,
+  Zap,
+  Globe,
 } from 'lucide-react';
-import { QuestState } from '../types';
+import { QuestState, ProxyMode, ProxyConfig, CaptchaConfig } from '../types';
 import { Language, translations } from '../i18n';
 
 interface TokenSessionCardProps {
   state: QuestState;
-  onStart: (token: string, setStatus: boolean, parallel: boolean, captchaApiKey?: string) => void;
+  onStart: (
+    token: string,
+    setStatus: boolean,
+    parallel: boolean,
+    captcha?: CaptchaConfig,
+    proxy?: ProxyConfig,
+  ) => void;
   onStop: () => void;
   onReset: () => void;
   errorMessage: string | null;
@@ -44,6 +53,17 @@ export const TokenSessionCard: React.FC<TokenSessionCardProps> = ({
   const [showToken, setShowToken] = useState(false);
   const [setStatus, setSetStatus] = useState(true);
   const [parallel, setParallel] = useState(true);
+
+  // Proxy states (Defaults to auto_github when on cloud/Render to prevent rate-limit)
+  const [proxyMode, setProxyMode] = useState<ProxyMode>(() => {
+    if (typeof window !== 'undefined') {
+      const isLocal =
+        window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      return isLocal ? 'none' : 'auto_github';
+    }
+    return 'auto_github';
+  });
+  const [customProxyUrl, setCustomProxyUrl] = useState('');
 
   // CAPTCHA Solver states
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -76,6 +96,7 @@ export const TokenSessionCard: React.FC<TokenSessionCardProps> = ({
   const handleClear = () => {
     setToken('');
     setCaptchaApiKey('');
+    setCustomProxyUrl('');
     setInputError(null);
   };
 
@@ -91,11 +112,24 @@ export const TokenSessionCard: React.FC<TokenSessionCardProps> = ({
     }
     setInputError(null);
 
-    const effectiveApiKey = enableCaptcha && captchaApiKey.trim() ? captchaApiKey.trim() : undefined;
-    onStart(trimmed, setStatus, parallel, effectiveApiKey);
+    const effectiveCaptcha: CaptchaConfig | undefined =
+      enableCaptcha && captchaApiKey.trim()
+        ? {
+            provider: captchaProvider,
+            apiKey: captchaApiKey.trim(),
+          }
+        : undefined;
+
+    const effectiveProxy: ProxyConfig = {
+      mode: proxyMode,
+      customUrl: proxyMode === 'custom' && customProxyUrl.trim() ? customProxyUrl.trim() : undefined,
+    };
+
+    onStart(trimmed, setStatus, parallel, effectiveCaptcha, effectiveProxy);
   };
 
   const isTokenFormatValid = token.trim() ? validateTokenFormat(token) : null;
+
 
   return (
     <div className="rounded-2xl bg-[#090B10] border border-white/[0.08] p-4 sm:p-5 space-y-4 shadow-xl">
@@ -264,6 +298,120 @@ export const TokenSessionCard: React.FC<TokenSessionCardProps> = ({
             <span className="toggle-switch-thumb" />
           </div>
         </div>
+      </div>
+
+      {/* Proxy Routing & Bypass RateLimit Card */}
+      <div className="rounded-xl border border-white/[0.08] bg-[#050608] p-3 sm:p-3.5 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Network className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="text-xs font-bold text-white tracking-wide">
+              {t.proxySectionTitle}
+            </span>
+          </div>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            {t.proxyRepoCountBadge}
+          </span>
+        </div>
+
+        {/* 3 Mode Option Buttons */}
+        <div className="grid grid-cols-3 gap-1.5">
+          {/* Mode 1: Auto GitHub Proxy */}
+          <button
+            type="button"
+            disabled={isBusy}
+            onClick={() => setProxyMode('auto_github')}
+            className={`p-2 rounded-xl text-left border transition-all ${
+              proxyMode === 'auto_github'
+                ? 'bg-indigo-600/25 border-indigo-500 text-white shadow-md shadow-indigo-500/10'
+                : 'bg-white/[0.02] border-white/[0.06] text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+            } disabled:opacity-50`}
+          >
+            <div className="flex items-center gap-1 font-bold text-[11px] text-indigo-300">
+              <Zap className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
+              <span className="truncate">Auto GitHub</span>
+            </div>
+            <div className="text-[10px] text-emerald-400/90 font-medium mt-0.5 truncate">
+              Vượt RateLimit
+            </div>
+          </button>
+
+          {/* Mode 2: Direct Connection */}
+          <button
+            type="button"
+            disabled={isBusy}
+            onClick={() => setProxyMode('none')}
+            className={`p-2 rounded-xl text-left border transition-all ${
+              proxyMode === 'none'
+                ? 'bg-indigo-600/25 border-indigo-500 text-white shadow-md shadow-indigo-500/10'
+                : 'bg-white/[0.02] border-white/[0.06] text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+            } disabled:opacity-50`}
+          >
+            <div className="flex items-center gap-1 font-bold text-[11px] text-slate-200">
+              <Globe className="w-3 h-3 text-cyan-400 shrink-0" />
+              <span className="truncate">Direct IP</span>
+            </div>
+            <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+              Chạy Local PC
+            </div>
+          </button>
+
+          {/* Mode 3: Custom Proxy */}
+          <button
+            type="button"
+            disabled={isBusy}
+            onClick={() => setProxyMode('custom')}
+            className={`p-2 rounded-xl text-left border transition-all ${
+              proxyMode === 'custom'
+                ? 'bg-indigo-600/25 border-indigo-500 text-white shadow-md shadow-indigo-500/10'
+                : 'bg-white/[0.02] border-white/[0.06] text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+            } disabled:opacity-50`}
+          >
+            <div className="flex items-center gap-1 font-bold text-[11px] text-slate-200">
+              <SlidersHorizontal className="w-3 h-3 text-indigo-400 shrink-0" />
+              <span className="truncate">Custom</span>
+            </div>
+            <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+              Proxy riêng
+            </div>
+          </button>
+        </div>
+
+        {/* Explanatory description for selected mode */}
+        <div className="text-[11px] text-slate-400 flex items-center gap-1.5 pt-0.5 leading-snug">
+          {proxyMode === 'auto_github' && (
+            <span className="text-emerald-400/90 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-emerald-400 shrink-0" />
+              {t.proxyModeAutoDesc}
+            </span>
+          )}
+          {proxyMode === 'none' && (
+            <span className="text-slate-400">
+              {t.proxyModeDirectDesc}
+            </span>
+          )}
+          {proxyMode === 'custom' && (
+            <span className="text-slate-400">
+              {t.proxyModeCustomDesc}
+            </span>
+          )}
+        </div>
+
+        {/* Custom Proxy Input Field */}
+        {proxyMode === 'custom' && (
+          <div className="pt-1">
+            <input
+              type="text"
+              value={customProxyUrl}
+              onChange={(e) => setCustomProxyUrl(e.target.value)}
+              placeholder={t.proxyCustomPlaceholder}
+              disabled={isBusy}
+              spellCheck="false"
+              className="w-full px-3 py-1.5 rounded-lg bg-[#07090D] border border-white/[0.1] text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
+            />
+          </div>
+        )}
       </div>
 
       {/* Auto CAPTCHA Solver Accordion */}

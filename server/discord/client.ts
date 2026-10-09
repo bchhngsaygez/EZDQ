@@ -1,5 +1,5 @@
 import { Client, APIGatewayBotInfo } from '@discordjs/core';
-import { RequestInit } from 'undici';
+import { RequestInit, ProxyAgent } from 'undici';
 import { REST, DefaultRestOptions, ResponseLike, RESTEvents } from '@discordjs/rest';
 import { WebSocketManager, WebSocketShard } from '@discordjs/ws';
 import { GatewaySendPayload, GatewayOpcodes, PresenceUpdateStatus } from 'discord-api-types/v10';
@@ -7,16 +7,6 @@ import { QuestManager } from './questManager';
 import { AllQuestsResponse, UserProfile } from '../types';
 import { Constants } from './constants';
 import { Utils } from './utils';
-
-async function makeRequest(
-  url: string,
-  init: RequestInit,
-): Promise<ResponseLike> {
-  if (init.headers) {
-    init.headers = Utils.makeHeaders(init.headers as any);
-  }
-  return DefaultRestOptions.makeRequest(url, init);
-}
 
 const originalSend = WebSocketShard.prototype.send;
 WebSocketShard.prototype.send = async function (payload: GatewaySendPayload) {
@@ -44,16 +34,42 @@ export class ClientQuest extends Client {
   public websocketManager: WebSocketManager;
   public readonly token: string;
   public onLog?: (message: string, level: 'info' | 'warn' | 'error' | 'success' | 'system') => void;
+  public proxyUrl?: string;
+  private proxyAgent?: ProxyAgent;
   private isDestroyed = false;
 
-  constructor(token: string) {
+  constructor(token: string, proxyUrl?: string) {
     if (!token) {
       throw new Error('Token Discord là bắt buộc.');
     }
     const cleanToken = token.trim();
+    let initialProxyAgent: ProxyAgent | undefined = undefined;
+
+    if (proxyUrl) {
+      try {
+        initialProxyAgent = new ProxyAgent({
+          uri: proxyUrl,
+          connect: { timeout: 10000 },
+        });
+      } catch {
+        initialProxyAgent = undefined;
+      }
+    }
+
+    const restMakeRequest = async (url: string, init: RequestInit): Promise<ResponseLike> => {
+      if (init.headers) {
+        init.headers = Utils.makeHeaders(init.headers as any);
+      }
+      const activeAgent = (this as any)?.proxyAgent ?? initialProxyAgent;
+      if (activeAgent) {
+        (init as any).dispatcher = activeAgent;
+      }
+      return DefaultRestOptions.makeRequest(url, init);
+    };
+
     const rest = new REST({
       version: '10',
-      makeRequest,
+      makeRequest: restMakeRequest,
       rejectOnRateLimit: (info: any) => {
         // Allow waiting up to 60 seconds automatically before rejecting
         return info.retryAfter > 60000;
@@ -93,6 +109,8 @@ export class ClientQuest extends Client {
 
     super({ rest, gateway });
     this.token = cleanToken;
+    this.proxyUrl = proxyUrl;
+    this.proxyAgent = initialProxyAgent;
     this.websocketManager = gateway;
     gateway.on('error', () => null);
   }
@@ -105,6 +123,14 @@ export class ClientQuest extends Client {
   async destroy(): Promise<void> {
     if (this.isDestroyed) return;
     this.isDestroyed = true;
+    if (this.proxyAgent) {
+      try {
+        await this.proxyAgent.destroy();
+      } catch {
+        /* ignore */
+      }
+      this.proxyAgent = undefined;
+    }
     try {
       await this.clearCustomStatus();
     } catch {
@@ -232,4 +258,26 @@ export class ClientQuest extends Client {
       throw err;
     }
   }
+
+  public setProxy(newProxyUrl?: string) {
+    this.proxyUrl = newProxyUrl;
+    if (this.proxyAgent) {
+      try {
+        this.proxyAgent.destroy();
+      } catch {}
+      this.proxyAgent = undefined;
+    }
+
+    if (newProxyUrl) {
+      try {
+        this.proxyAgent = new ProxyAgent({
+          uri: newProxyUrl,
+          connect: { timeout: 10000 },
+        });
+      } catch {
+        this.proxyAgent = undefined;
+      }
+    }
+  }
 }
+

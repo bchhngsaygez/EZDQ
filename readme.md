@@ -28,6 +28,15 @@
   - Nếu không có: Bot vẫn cày xong 100% tiến độ và thông báo bạn mở app Discord nhận quà thủ công.
   - **Bảo mật API Key:** API Key giải CAPTCHA cũng được lưu tạm trong RAM và tự xóa sạch khi tải lại/đóng trang!
 
+### 4. Tự Động Quét & Định Tuyến Proxy Từ 30+ Repo GitHub (Bypass RateLimit Cloud/Render)
+- **Giải quyết triệt để lỗi `RateLimitError[/quests/@me]`:** Khi host trên Render, Railway hoặc VPS, Cloudflare của Discord thường giới hạn tần suất theo dải IP datacenter.
+- **Kho Proxy khổng lồ từ 30+ repo GitHub:** Tự động thu thập hơn 200,000+ proxy (với hàng nghìn proxy chất lượng cao từ `monosans`, `prxchk`, `sunny9577`, `proxifly`...).
+- **Health-Check siêu tốc đa luồng:** Kiểm tra trực tiếp kết nối tới Discord API bằng micro-batch song song, tìm ra proxy có độ trễ thấp nhất trong vài trăm mili-giây.
+- **3 Chế độ linh hoạt:**
+  - **⚡ Auto GitHub Proxy:** Khuyên dùng khi chạy trên Render/VPS để tự động vượt rate-limit.
+  - **🌐 Kết nối Trực tiếp (Direct IP):** Dành cho khi chạy trên máy tính cá nhân (Localhost).
+  - **🛠️ Proxy Tùy Chỉnh (Custom):** Nhập proxy HTTP/HTTPS riêng nếu có.
+
 ### 5. Bảo Mật Phiên Tuyệt Đối (Zero Persistence — Bay Màu Khi Reload)
 - **Không lưu trữ bất kỳ dữ liệu nào:** Token Discord và API Key CAPTCHA không bao giờ được ghi vào `localStorage`, `sessionStorage`, `cookies`, hay ổ cứng.
 - Token chỉ tồn tại trong bộ nhớ RAM của phiên duyệt hiện tại.
@@ -38,7 +47,8 @@
 ### 6. Tự Động Đặt Trạng Thái Discord
 - Tự động cập nhật Custom Status của tài khoản Discord qua cả **Gateway WebSocket** và **REST API User Settings**.
 - Tự động xóa trạng thái khi hoàn tất hoặc bấm Dừng.
-- Có thể tùy chỉnh trang thái lúc làm quest tùy thích
+- Tự động cập nhật trạng thái làm quest: `Doing Quest ✔ • ezdisquest.nx.kg`.
+
 
 ---
 

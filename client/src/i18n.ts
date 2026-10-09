@@ -61,6 +61,18 @@ export const translations = {
     captchaApiKeyPlaceholder: 'Dán API Key nhà cung cấp (CapSolver / 2Captcha / Anti-Captcha)...',
     captchaHint: 'Nếu không nhập API key, bot vẫn cày 100% tiến độ và bạn có thể vào app Discord nhận quà thủ công.',
 
+    // Proxy Settings
+    proxySectionTitle: 'Định tuyến Proxy & Vượt RateLimit Cloudflare',
+    proxyModeAuto: '⚡ Auto GitHub Proxy Pool',
+    proxyModeAutoDesc: 'Tự động cào & xoay vòng proxy sống từ 30+ repo GitHub để không bao giờ bị dính RateLimit.',
+    proxyModeDirect: '🌐 Kết nối Trực tiếp (Direct IP)',
+    proxyModeDirectDesc: 'Dùng IP máy chủ gốc (thích hợp nhất khi chạy local trên máy tính cá nhân).',
+    proxyModeCustom: '🛠️ Proxy Tùy Chỉnh (Custom)',
+    proxyModeCustomDesc: 'Sử dụng proxy HTTP/HTTPS riêng của bạn.',
+    proxyCustomPlaceholder: 'http://user:pass@ip:port hoặc http://ip:port',
+    proxyRepoCountBadge: '30+ GitHub Repos Live',
+
+
     // Action Buttons
     startBtn: 'BẮT ĐẦU CÀY QUEST',
     startingBtn: 'Đang xử lý...',
@@ -193,6 +205,18 @@ export const translations = {
     captchaApiKey: 'CAPTCHA API Key',
     captchaApiKeyPlaceholder: 'Paste provider API Key (CapSolver / 2Captcha / Anti-Captcha)...',
     captchaHint: 'Optional. If left blank, you can still claim completed quests manually inside Discord.',
+
+    // Proxy Settings
+    proxySectionTitle: 'Proxy Routing & Cloudflare Bypass',
+    proxyModeAuto: '⚡ Auto GitHub Proxy Pool',
+    proxyModeAutoDesc: 'Automatically scrapes & rotates live proxies from 30+ GitHub repos to avoid RateLimit.',
+    proxyModeDirect: '🌐 Direct Connection (Direct IP)',
+    proxyModeDirectDesc: 'Use server origin IP (recommended when running on local machine).',
+    proxyModeCustom: '🛠️ Custom Proxy (Custom)',
+    proxyModeCustomDesc: 'Use your own HTTP/HTTPS proxy.',
+    proxyCustomPlaceholder: 'http://user:pass@ip:port or http://ip:port',
+    proxyRepoCountBadge: '30+ GitHub Repos Live',
+
 
     // Action Buttons
     startBtn: 'START AUTO QUEST',

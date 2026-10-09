@@ -65,6 +65,13 @@ export interface CaptchaConfig {
   apiKey: string;
 }
 
+export type ProxyMode = 'none' | 'auto_github' | 'custom';
+
+export interface ProxyConfig {
+  mode: ProxyMode;
+  customUrl?: string;
+}
+
 export type ClientMessage =
   | {
       type: 'START';
@@ -72,6 +79,8 @@ export type ClientMessage =
       setStatus?: boolean;
       parallel?: boolean;
       captcha?: CaptchaConfig;
+      proxy?: ProxyConfig;
     }
   | { type: 'STOP' }
   | { type: 'CLAIM'; questId: string };
+

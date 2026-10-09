@@ -2,9 +2,10 @@ import { GatewayDispatchEvents } from 'discord-api-types/v10';
 import { WebSocket } from 'ws';
 import { ClientQuest } from './discord/client';
 import { QuestManager } from './discord/questManager';
-import { ServerEvent, LogLevel, CaptchaConfig } from './types';
+import { ServerEvent, LogLevel, CaptchaConfig, ProxyConfig } from './types';
 import { Utils } from './discord/utils';
 import { Constants } from './discord/constants';
+import { ProxyPoolManager } from './proxy/proxyPool';
 
 export class UserSession {
   public readonly id: string;
@@ -15,6 +16,7 @@ export class UserSession {
   private setStatus: boolean;
   private parallel: boolean;
   private captchaConfig?: CaptchaConfig;
+  private proxyConfig?: ProxyConfig;
   private isDestroyed = false;
 
   constructor(
@@ -24,6 +26,7 @@ export class UserSession {
     setStatus = true,
     parallel = true,
     captcha?: CaptchaConfig,
+    proxy?: ProxyConfig,
   ) {
     this.id = id;
     this.token = token;
@@ -31,6 +34,7 @@ export class UserSession {
     this.setStatus = setStatus;
     this.parallel = parallel;
     this.captchaConfig = captcha;
+    this.proxyConfig = proxy;
   }
 
   setWs(ws: WebSocket) {
@@ -75,7 +79,30 @@ export class UserSession {
     this.log('🚀 Khởi tạo phiên kết nối Discord (RAM-only)...', 'system');
 
     try {
-      this.client = new ClientQuest(this.token);
+      let proxyUrl: string | undefined = undefined;
+      const proxyMode =
+        this.proxyConfig?.mode ||
+        (process.env.AUTO_GITHUB_PROXY === 'true' || process.env.RENDER ? 'auto_github' : 'none');
+
+      if (proxyMode === 'custom' && this.proxyConfig?.customUrl) {
+        const custom = this.proxyConfig.customUrl.trim();
+        const sanitized = custom.replace(/:[^:]*@/, ':***@');
+        this.log(`🌐 [Proxy Custom] Đang kiểm tra proxy riêng: ${sanitized}...`, 'info');
+        const testRes = await ProxyPoolManager.getInstance().testProxy(custom, 4000);
+        if (testRes) {
+          proxyUrl = custom;
+          this.log(`✅ [Proxy Custom] Kết nối thành công tới proxy riêng (Độ trễ: ${testRes.latency}ms)`, 'success');
+        } else {
+          this.log(`⚠️ [Proxy Custom] Không thể kết nối tới proxy riêng hoặc bị chặn, chuyển sang kết nối trực tiếp...`, 'warn');
+        }
+      } else if (proxyMode === 'auto_github') {
+        const found = await ProxyPoolManager.getInstance().findWorkingProxy((msg, lvl) => this.log(msg, lvl));
+        if (found) {
+          proxyUrl = found.proxyUrl;
+        }
+      }
+
+      this.client = new ClientQuest(this.token, proxyUrl);
       this.client.onLog = (msg, lvl) => this.log(msg, lvl);
 
       this.client.once(GatewayDispatchEvents.Ready, async ({ data }) => {
@@ -355,12 +382,13 @@ export class SessionManager {
     setStatus = true,
     parallel = true,
     captcha?: CaptchaConfig,
+    proxy?: ProxyConfig,
   ): UserSession {
     // If existing session exists for this socket/id, destroy old one
     if (this.sessions.has(id)) {
       this.destroySession(id);
     }
-    const session = new UserSession(id, token, ws, setStatus, parallel, captcha);
+    const session = new UserSession(id, token, ws, setStatus, parallel, captcha, proxy);
     this.sessions.set(id, session);
     return session;
   }
