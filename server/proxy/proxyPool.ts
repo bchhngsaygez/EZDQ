@@ -56,10 +56,10 @@ export interface ProxyTestResult {
  */
 export function isProxyError(err: any): boolean {
   if (!err) return false;
-  const msg = (err.message || String(err)).toLowerCase();
-  const code = (err.code || '').toLowerCase();
-  const name = (err.name || '').toLowerCase();
-  const status = Number(err.status || err.statusCode || 0);
+  const msg = String(err.message ?? err ?? '').toLowerCase();
+  const code = String(err.code ?? '').toLowerCase();
+  const name = String(err.name ?? '').toLowerCase();
+  const status = Number(err.status || err.statusCode || (typeof err.code === 'number' ? err.code : 0));
 
   return (
     name.includes('connecttimeouterror') ||
@@ -79,6 +79,7 @@ export function isProxyError(err: any): boolean {
     msg.includes('proxy error') ||
     msg.includes('connection reset') ||
     msg.includes('ratelimiterror[/quests/@me]') ||
+    msg.includes('rate limit') ||
     msg.includes('unexpected token') ||
     msg.includes('not valid json') ||
     msg.includes('<!doctype') ||
@@ -86,6 +87,7 @@ export function isProxyError(err: any): boolean {
     msg.includes('service unavailable') ||
     msg.includes('gateway timeout') ||
     status === 407 ||
+    status === 429 ||
     status === 502 ||
     status === 503 ||
     status === 504

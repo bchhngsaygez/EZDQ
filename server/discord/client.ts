@@ -354,24 +354,37 @@ export class ClientQuest extends Client {
   }
 
   async fetchQuests(fetchExcludedQuests = false): Promise<QuestManager> {
-    try {
-      const response = (await this.rest.get('/quests/@me')) as AllQuestsResponse;
-      const manager = await QuestManager.fromResponse(
-        this,
-        response,
-        fetchExcludedQuests,
-      );
-      this.questManager = manager;
-      return manager;
-    } catch (err: any) {
-      const msg = err?.message || String(err);
-      if (msg.includes('RateLimitError') || err?.status === 429) {
-        throw new Error(
-          `RateLimitError[/quests/@me]: IP của máy chủ host (Render/Cloud) đang bị Discord giới hạn tần suất. Khắc phục: Chạy trên máy cá nhân (Localhost) hoặc cấu hình PROXY_URL.`
+    let lastError: any = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = (await this.rest.get('/quests/@me')) as AllQuestsResponse;
+        const manager = await QuestManager.fromResponse(
+          this,
+          response,
+          fetchExcludedQuests,
         );
+        this.questManager = manager;
+        return manager;
+      } catch (err: any) {
+        lastError = err;
+        if (attempt === 0 && this.proxyMode === 'auto_github' && this.isProxyError(err)) {
+          if (this.onLog) {
+            this.onLog(`🔄 [Proxy Failover] Không thể tải danh sách nhiệm vụ (${err?.message || 'Lỗi kết nối'}), đang đổi sang Proxy khác...`, 'warn');
+          }
+          await this.rotateToNextProxy(err);
+          continue;
+        }
+        break;
       }
-      throw err;
     }
+
+    const msg = String(lastError?.message || lastError || '');
+    if (msg.includes('RateLimitError') || lastError?.status === 429) {
+      throw new Error(
+        `RateLimitError[/quests/@me]: IP của máy chủ host (Render/Cloud) đang bị Discord giới hạn tần suất. Khắc phục: Chạy trên máy cá nhân (Localhost) hoặc cấu hình PROXY_URL.`
+      );
+    }
+    throw lastError;
   }
 
   public setProxy(newProxyUrl?: string) {
