@@ -58,6 +58,49 @@ export class QuestManager implements Iterable<Quest> {
     this.isAborted = true;
   }
 
+  /**
+   * Generates a stable unique identifier for a quest campaign.
+   * Handles multi-platform entries (Desktop, Xbox, PlayStation) or duplicate targets.
+   */
+  public static getDedupeKey(quest: Quest): string {
+    const appId = quest.config?.application?.id || '';
+    const questName = (quest.config?.messages?.quest_name || '').trim().toLowerCase();
+    if (appId && questName) {
+      return `${appId}:${questName}`;
+    }
+    if (questName) {
+      return `name:${questName}`;
+    }
+    return quest.id;
+  }
+
+  /**
+   * Scores quest variants to select the highest-value and most actionable variant (e.g. PC desktop over console)
+   */
+  public static scoreQuest(quest: Quest): number {
+    let score = 0;
+    if (!quest.preview) score += 1000;
+    if (quest.hasClaimedRewards()) score += 100;
+    if (quest.isCompleted()) score += 200;
+    if (quest.isEnrolledQuest()) score += 300;
+
+    const tasks = quest.config?.task_config_v2?.tasks || {};
+    // Prioritize desktop / video / activity over console-only tasks
+    if (tasks.PLAY_ON_DESKTOP) score += 50;
+    if (tasks.WATCH_VIDEO || tasks.WATCH_VIDEO_ON_MOBILE) score += 50;
+    if (tasks.PLAY_ACTIVITY || tasks.ACHIEVEMENT_IN_ACTIVITY) score += 40;
+
+    // Favor existing progress
+    const progressList = Object.values(quest.userStatus?.progress || {});
+    for (const p of progressList as any[]) {
+      if (p?.value && typeof p.value === 'number') {
+        score += Math.min(p.value, 30);
+      }
+    }
+
+    return score;
+  }
+
   static async fromResponse(
     client: ClientQuest,
     response: AllQuestsResponse,
@@ -68,10 +111,30 @@ export class QuestManager implements Iterable<Quest> {
         `Đăng ký nhiệm vụ bị tạm khóa đến ${response.quest_enrollment_blocked_until}.`,
       );
     }
+
+    const rawQuests = response.quests.map((quest) => Quest.create(quest));
+    const deduplicatedMap = new Map<string, Quest>();
+
+    for (const q of rawQuests) {
+      // Exclude preview quests that are not yet active or enrollable
+      if (q.preview) continue;
+
+      const dedupeKey = QuestManager.getDedupeKey(q);
+      const existing = deduplicatedMap.get(dedupeKey);
+      if (!existing) {
+        deduplicatedMap.set(dedupeKey, q);
+      } else {
+        if (QuestManager.scoreQuest(q) > QuestManager.scoreQuest(existing)) {
+          deduplicatedMap.set(dedupeKey, q);
+        }
+      }
+    }
+
     const questManager = new QuestManager(
       client,
-      response.quests.map((quest) => Quest.create(quest)),
+      Array.from(deduplicatedMap.values()),
     );
+
     if (
       fetchExcludedQuests &&
       Array.isArray(response.excluded_quests) &&
@@ -96,7 +159,11 @@ export class QuestManager implements Iterable<Quest> {
         targeted_content: 0,
         preview: false,
       });
-      this.quests.set(quest.id, quest);
+      const key = QuestManager.getDedupeKey(quest);
+      const existing = Array.from(this.quests.values()).find((q) => QuestManager.getDedupeKey(q) === key);
+      if (!existing) {
+        this.quests.set(quest.id, quest);
+      }
     } catch {
       /* ignore */
     }
@@ -123,22 +190,52 @@ export class QuestManager implements Iterable<Quest> {
   }
 
   filterQuestsValidToDo(reference: Date = new Date()): Quest[] {
-    return this.list().filter(
+    const valid = this.list().filter(
       (quest) =>
+        !quest.preview &&
         !quest.isCompleted() &&
         !quest.isExpired(reference) &&
         quest.isStarted(reference),
     );
+
+    // Enforce strict single quest per campaign/game
+    const seen = new Set<string>();
+    return valid.filter((quest) => {
+      const key = QuestManager.getDedupeKey(quest);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
 
   filterQuestsValidToRedeem(): Quest[] {
-    return this.list().filter(
-      (quest) => quest.isCompleted() && !quest.hasClaimedRewards(),
+    const valid = this.list().filter(
+      (quest) => !quest.preview && quest.isCompleted() && !quest.hasClaimedRewards(),
     );
+
+    const seen = new Set<string>();
+    return valid.filter((quest) => {
+      const key = QuestManager.getDedupeKey(quest);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
 
   toItemStates(): QuestItemState[] {
-    return this.list().map((quest) => {
+    const seen = new Set<string>();
+    const uniqueQuests: Quest[] = [];
+
+    for (const quest of this.list()) {
+      if (quest.preview) continue;
+      const key = QuestManager.getDedupeKey(quest);
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueQuests.push(quest);
+      }
+    }
+
+    return uniqueQuests.map((quest) => {
       const taskConfig = quest.config.task_config_v2;
       const taskName = (['WATCH_VIDEO', 'WATCH_VIDEO_ON_MOBILE', 'PLAY_ON_DESKTOP', 'PLAY_ON_XBOX', 'PLAY_ON_PLAYSTATION', 'PLAY_ACTIVITY', 'ACHIEVEMENT_IN_ACTIVITY'] as QuestTaskConfigType[]).find(
         (x) => taskConfig.tasks[x] != null,
@@ -518,13 +615,23 @@ export class QuestManager implements Iterable<Quest> {
             break;
           }
         } catch (err: any) {
+          const msg = err?.message || String(err);
+          if (this.client.isProxyError(err) && this.client.proxyMode === 'auto_github') {
+            this.log(`⚠️ Sự cố mạng proxy khi cập nhật video ("${msg}"). Đang tự động chuyển sang Proxy dự phòng...`, 'warn');
+            const rotated = await this.client.rotateToNextProxy(err);
+            if (rotated) {
+              consecutiveVideoErrors = 0;
+              await this.sleep(1500);
+              continue;
+            }
+          }
           consecutiveVideoErrors++;
-          this.log(`⚠️ Lỗi cập nhật tiến trình video "${questName}" (${consecutiveVideoErrors}/5): ${err?.message}`, 'warn');
+          this.log(`⚠️ Lỗi cập nhật tiến trình video "${questName}" (${consecutiveVideoErrors}/5): ${msg}`, 'warn');
           if (consecutiveVideoErrors >= 5) {
             this.log(`Dừng nhiệm vụ video "${questName}" do lỗi liên tục quá 5 lần.`, 'error');
             this.emit({
               type: 'quest:error',
-              data: { name: questName, id: quest.id, message: err?.message || 'Lỗi video quá 5 lần' },
+              data: { name: questName, id: quest.id, message: msg || 'Lỗi video quá 5 lần' },
             });
             return;
           }

@@ -201,6 +201,21 @@ export class UserSession {
                 await new Promise((r) => setTimeout(r, 2500));
               } catch (err: any) {
                 const msg = err?.message || String(err);
+                if (this.client?.isProxyError(err) && this.client.proxyMode === 'auto_github') {
+                  this.log(`⚠️ Lỗi mạng proxy khi đăng ký "${qName}". Đang đổi proxy và thử lại...`, 'warn');
+                  const rotated = await this.client.rotateToNextProxy(err);
+                  if (rotated) {
+                    try {
+                      await questManager.acceptQuest(q, isAndroid);
+                      this.log(`Đăng ký thành công "${qName}".`, 'success');
+                      await new Promise((r) => setTimeout(r, 2500));
+                      continue;
+                    } catch (retryErr: any) {
+                      /* continue to standard error handling */
+                    }
+                  }
+                }
+
                 if (msg.toLowerCase().includes('ratelimit') || err?.status === 429) {
                   this.log(
                     `⏳ [RateLimit Discord] Bạn đang bị giới hạn nhận nhiệm vụ mới qua API (~45 phút).`,

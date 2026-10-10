@@ -70,21 +70,21 @@ export class ClientQuest extends Client {
       }
 
       let attempt = 0;
-      while (attempt < 2) {
+      while (attempt < 3) {
         attempt++;
         if (currentProxyAgent) {
           (init as any).dispatcher = currentProxyAgent;
+        } else {
+          delete (init as any).dispatcher;
         }
 
         try {
           return await DefaultRestOptions.makeRequest(url, init);
         } catch (err: any) {
-          if (attempt === 1 && currentProxyMode === 'auto_github' && isProxyError(err)) {
+          if (attempt < 3 && currentProxyMode === 'auto_github' && isProxyError(err)) {
             if (rotateHandler) {
-              const rotated = await rotateHandler(err);
-              if (rotated) {
-                continue; // Retry request immediately with next proxy
-              }
+              await rotateHandler(err);
+              continue; // Retry request immediately with next proxy
             }
           }
           throw err;

@@ -79,18 +79,32 @@ export function useQuestSocket() {
             setCustomStatusActive(payload.data.active);
             break;
 
-          case 'quests_loaded':
-            setQuests(payload.data.quests);
+          case 'quests_loaded': {
+            const seen = new Set<string>();
+            const unique = payload.data.quests.filter((q) => {
+              const nameKey = (q.name || '').trim().toLowerCase();
+              const appId = q.appId || q.id;
+              const composite = `${appId}:${nameKey}`;
+              if (seen.has(composite) || (nameKey && seen.has(nameKey))) return false;
+              seen.add(composite);
+              if (nameKey) seen.add(nameKey);
+              return true;
+            });
+            setQuests(unique);
             break;
+          }
 
           case 'quest:start':
             setQuests((prev) => {
-              const exists = prev.some((q) => q.id === payload.data.id || q.name === payload.data.name);
+              const targetName = (payload.data.name || '').trim().toLowerCase();
+              const exists = prev.some(
+                (q) => q.id === payload.data.id || (targetName && q.name.trim().toLowerCase() === targetName),
+              );
               if (exists) {
                 return prev.map((q) =>
-                  (q.id === payload.data.id || q.name === payload.data.name)
+                  q.id === payload.data.id || (targetName && q.name.trim().toLowerCase() === targetName)
                     ? { ...q, ...payload.data, status: 'running' as const }
-                    : q
+                    : q,
                 );
               }
               return [...prev, payload.data as QuestItemState];
@@ -98,9 +112,10 @@ export function useQuestSocket() {
             break;
 
           case 'quest:progress':
-            setQuests((prev) =>
-              prev.map((q) =>
-                q.id === payload.data.id || q.name === payload.data.name
+            setQuests((prev) => {
+              const targetName = (payload.data.name || '').trim().toLowerCase();
+              return prev.map((q) =>
+                q.id === payload.data.id || (targetName && q.name.trim().toLowerCase() === targetName)
                   ? {
                       ...q,
                       secondsDone: Math.min(
@@ -110,44 +125,47 @@ export function useQuestSocket() {
                       secondsNeeded: payload.data.secondsNeeded,
                       status: 'running' as const,
                     }
-                  : q
-              )
-            );
+                  : q,
+              );
+            });
             break;
 
           case 'quest:done':
-            setQuests((prev) =>
-              prev.map((q) =>
-                q.id === payload.data.id || q.name === payload.data.name
+            setQuests((prev) => {
+              const targetName = (payload.data.name || '').trim().toLowerCase();
+              return prev.map((q) =>
+                q.id === payload.data.id || (targetName && q.name.trim().toLowerCase() === targetName)
                   ? {
                       ...q,
                       status: 'done' as const,
                       secondsDone: q.secondsNeeded || q.secondsDone,
                       claimed: true,
                     }
-                  : q
-              )
-            );
+                  : q,
+              );
+            });
             break;
 
           case 'quest:skip':
-            setQuests((prev) =>
-              prev.map((q) =>
-                q.id === payload.data.id || q.name === payload.data.name
+            setQuests((prev) => {
+              const targetName = (payload.data.name || '').trim().toLowerCase();
+              return prev.map((q) =>
+                q.id === payload.data.id || (targetName && q.name.trim().toLowerCase() === targetName)
                   ? { ...q, status: 'skip' as const, reason: payload.data.reason }
-                  : q
-              )
-            );
+                  : q,
+              );
+            });
             break;
 
           case 'quest:error':
-            setQuests((prev) =>
-              prev.map((q) =>
-                q.id === payload.data.id || q.name === payload.data.name
+            setQuests((prev) => {
+              const targetName = (payload.data.name || '').trim().toLowerCase();
+              return prev.map((q) =>
+                q.id === payload.data.id || (targetName && q.name.trim().toLowerCase() === targetName)
                   ? { ...q, status: 'error' as const, reason: payload.data.message }
-                  : q
-              )
-            );
+                  : q,
+              );
+            });
             break;
 
           case 'finish':
