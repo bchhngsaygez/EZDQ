@@ -46,7 +46,23 @@ export class Quest {
   }
 
   isCompleted(): boolean {
-    return Boolean(this.userStatus?.completed_at);
+    if (Boolean(this.userStatus?.completed_at)) return true;
+    if (Boolean(this.userStatus?.claimed_at)) return true;
+
+    // Check if task progress reached or exceeded target
+    const tasks = this.data.config?.task_config_v2?.tasks;
+    const progress = this.data.user_status?.progress;
+    if (tasks && progress) {
+      for (const [taskName, taskConfig] of Object.entries(tasks)) {
+        const val = (progress as any)[taskName]?.value;
+        const target = (taskConfig as any)?.target;
+        if (typeof val === 'number' && typeof target === 'number' && target > 0 && val >= target) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   isEnrolledQuest(): boolean {

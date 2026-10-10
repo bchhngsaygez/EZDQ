@@ -681,10 +681,12 @@ export class QuestManager implements Iterable<Quest> {
     let heartbeatCount = 0;
     const initialDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
     let lastKnownDone = initialDone;
-    // Calculate maximum safety heartbeats allowed (giving up to 4 extra heartbeats = 80 seconds buffer)
-    const maxHeartbeats = Math.ceil((secondsNeeded - initialDone) / interval) + 4;
+    // Generous safety limit: up to 25 extra heartbeats (~8.5 minutes buffer) so it NEVER aborts early at 99%
+    const safetyLimit = Math.ceil((secondsNeeded - initialDone) / interval) + 25;
 
-    while (heartbeatCount < maxHeartbeats && !this.isAborted) {
+    let isActuallyDone = quest.isCompleted() || initialDone >= secondsNeeded;
+
+    while (!isActuallyDone && heartbeatCount < safetyLimit && !this.isAborted) {
       try {
         const res = await this.client.rest.post(
           `/quests/${quest.id}/heartbeat`,
@@ -700,18 +702,17 @@ export class QuestManager implements Iterable<Quest> {
         heartbeatCount++;
 
         const serverDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
-        const isActuallyDone = quest.isCompleted() || serverDone >= secondsNeeded;
+        isActuallyDone = quest.isCompleted() || serverDone >= secondsNeeded;
 
-        // Realistic elapsed progress: first heartbeat records start, subsequent heartbeats add interval
+        // Effective elapsed progress based on heartbeat counts and server response
         const elapsedEstimate = Math.max(0, (heartbeatCount - 1) * interval);
         const effectiveDone = Math.max(serverDone, initialDone + elapsedEstimate);
 
-        // Never snap to 100% or secondsNeeded unless Discord server has confirmed completion!
         lastKnownDone = isActuallyDone ? secondsNeeded : Math.min(secondsNeeded - 1, effectiveDone);
 
         const currentMins = Math.floor(lastKnownDone / 60);
         const totalMins = Math.ceil(secondsNeeded / 60);
-        const currentPercent = isActuallyDone ? 100 : Math.min(99, Math.round((lastKnownDone / secondsNeeded) * 100));
+        const currentPercent = isActuallyDone ? 100 : Math.min(99, Math.floor((lastKnownDone / secondsNeeded) * 100));
 
         this.log(
           `🕹️ Đã gửi tín hiệu game "${applicationName}". Tiến độ: ${currentMins}/${totalMins} phút (${currentPercent}%).`,
@@ -723,9 +724,13 @@ export class QuestManager implements Iterable<Quest> {
           data: { name: questName, id: quest.id, secondsDone: lastKnownDone, secondsNeeded },
         });
 
-        // ONLY break out when Discord server confirms completion or target reached!
         if (isActuallyDone) {
           break;
+        }
+
+        // If time estimate has reached 100% but Discord server is lagging by a few seconds, keep looping and notify user
+        if (effectiveDone >= secondsNeeded && !isActuallyDone) {
+          this.log(`⏳ Discord đang đồng bộ những giây cuối cùng (${serverDone}/${secondsNeeded}s), tiếp tục giữ kết nối...`, 'info');
         }
       } catch (err: any) {
         const msg = err?.message || String(err);
@@ -755,7 +760,48 @@ export class QuestManager implements Iterable<Quest> {
 
     if (this.isAborted) return;
 
-    // Send terminal heartbeat
+    let finalServerDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
+    let actuallyComplete = quest.isCompleted() || finalServerDone >= secondsNeeded;
+
+    if (!actuallyComplete) {
+      // If still missing seconds after loop, send up to 3 extra sync heartbeats with 15s wait
+      for (let syncAttempt = 1; syncAttempt <= 3; syncAttempt++) {
+        if (quest.isCompleted() || finalServerDone >= secondsNeeded || this.isAborted) {
+          actuallyComplete = true;
+          break;
+        }
+        this.log(`⏳ [Đồng bộ chốt] Gửi thêm tín hiệu (${syncAttempt}/3) để Discord ghi nhận đủ 100% (${finalServerDone}/${secondsNeeded}s)...`, 'info');
+        await this.sleep(15000);
+        try {
+          const syncRes = await this.client.rest.post(
+            `/quests/${quest.id}/heartbeat`,
+            {
+              body: {
+                application_id: quest.config.application.id,
+                terminal: false,
+              },
+            },
+          );
+          quest.updateUserStatus(syncRes as any);
+          finalServerDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
+          if (quest.isCompleted() || finalServerDone >= secondsNeeded) {
+            actuallyComplete = true;
+            break;
+          }
+        } catch {}
+      }
+    }
+
+    if (!actuallyComplete) {
+      this.log(`⚠️ Nhiệm vụ "${questName}" chưa đủ 100% trên Discord (${finalServerDone}/${secondsNeeded}s).`, 'warn');
+      this.emit({
+        type: 'quest:error',
+        data: { name: questName, id: quest.id, message: `Chưa đủ 100% thời gian trên Discord (${finalServerDone}/${secondsNeeded}s)` },
+      });
+      return;
+    }
+
+    // Send terminal heartbeat to close the game session cleanly once 100% verified
     try {
       const res = await this.client.rest.post(
         `/quests/${quest.id}/heartbeat`,
@@ -769,38 +815,6 @@ export class QuestManager implements Iterable<Quest> {
       quest.updateUserStatus(res as any);
     } catch {
       /* ignore terminal error */
-    }
-
-    let finalServerDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
-
-    // Safety buffer: If still missing seconds, send 1 final heartbeat after 10s wait
-    if (!quest.isCompleted() && finalServerDone < secondsNeeded) {
-      this.log(`⏳ Đang gửi thêm tín hiệu chốt để Discord đồng bộ đủ 100%...`, 'info');
-      await this.sleep(10000);
-      try {
-        const extraRes = await this.client.rest.post(
-          `/quests/${quest.id}/heartbeat`,
-          {
-            body: {
-              application_id: quest.config.application.id,
-              terminal: true,
-            },
-          },
-        );
-        quest.updateUserStatus(extraRes as any);
-        finalServerDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
-      } catch {}
-    }
-
-    const verifiedDone = quest.isCompleted() || finalServerDone >= secondsNeeded;
-
-    if (!verifiedDone) {
-      this.log(`⚠️ Nhiệm vụ "${questName}" chưa đủ 100% trên Discord (${finalServerDone}/${secondsNeeded}s). Hãy chạy lại để cày nốt phần còn thiếu.`, 'warn');
-      this.emit({
-        type: 'quest:error',
-        data: { name: questName, id: quest.id, message: `Chưa đủ 100% thời gian trên Discord (${finalServerDone}/${secondsNeeded}s)` },
-      });
-      return;
     }
 
     // Always emit 100% progress before completing
@@ -831,9 +845,12 @@ export class QuestManager implements Iterable<Quest> {
     let heartbeatCount = 0;
     const initialDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
     let lastKnownDone = initialDone;
-    const maxHeartbeats = Math.ceil((secondsNeeded - initialDone) / interval) + 4;
+    // Generous safety limit: up to 25 extra heartbeats (~8.5 minutes buffer) so it NEVER aborts early at 99%
+    const safetyLimit = Math.ceil((secondsNeeded - initialDone) / interval) + 25;
 
-    while (heartbeatCount < maxHeartbeats && !this.isAborted) {
+    let isActuallyDone = quest.isCompleted() || initialDone >= secondsNeeded;
+
+    while (!isActuallyDone && heartbeatCount < safetyLimit && !this.isAborted) {
       try {
         const res = await this.client.rest.post(
           `/quests/${quest.id}/heartbeat`,
@@ -846,7 +863,7 @@ export class QuestManager implements Iterable<Quest> {
         heartbeatCount++;
 
         const serverDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
-        const isActuallyDone = quest.isCompleted() || serverDone >= secondsNeeded;
+        isActuallyDone = quest.isCompleted() || serverDone >= secondsNeeded;
 
         const elapsedEstimate = Math.max(0, (heartbeatCount - 1) * interval);
         const effectiveDone = Math.max(serverDone, initialDone + elapsedEstimate);
@@ -855,7 +872,7 @@ export class QuestManager implements Iterable<Quest> {
 
         const currentMins = Math.floor(lastKnownDone / 60);
         const totalMins = Math.ceil(secondsNeeded / 60);
-        const currentPercent = isActuallyDone ? 100 : Math.min(99, Math.round((lastKnownDone / secondsNeeded) * 100));
+        const currentPercent = isActuallyDone ? 100 : Math.min(99, Math.floor((lastKnownDone / secondsNeeded) * 100));
 
         this.log(
           `📞 Tín hiệu hoạt động "${applicationName}". Tiến độ: ${currentMins}/${totalMins} phút (${currentPercent}%).`,
@@ -869,6 +886,10 @@ export class QuestManager implements Iterable<Quest> {
 
         if (isActuallyDone) {
           break;
+        }
+
+        if (effectiveDone >= secondsNeeded && !isActuallyDone) {
+          this.log(`⏳ Discord đang đồng bộ những giây cuối cùng (${serverDone}/${secondsNeeded}s), tiếp tục giữ kết nối...`, 'info');
         }
       } catch (err: any) {
         const msg = err?.message || String(err);
@@ -898,6 +919,48 @@ export class QuestManager implements Iterable<Quest> {
 
     if (this.isAborted) return;
 
+    let finalServerDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
+    let actuallyComplete = quest.isCompleted() || finalServerDone >= secondsNeeded;
+
+    if (!actuallyComplete) {
+      // If still missing seconds after loop, send up to 3 extra sync heartbeats with 15s wait
+      for (let syncAttempt = 1; syncAttempt <= 3; syncAttempt++) {
+        if (quest.isCompleted() || finalServerDone >= secondsNeeded || this.isAborted) {
+          actuallyComplete = true;
+          break;
+        }
+        this.log(`⏳ [Đồng bộ chốt] Gửi thêm tín hiệu (${syncAttempt}/3) để Discord ghi nhận đủ 100% (${finalServerDone}/${secondsNeeded}s)...`, 'info');
+        await this.sleep(15000);
+        try {
+          const syncRes = await this.client.rest.post(
+            `/quests/${quest.id}/heartbeat`,
+            {
+              body: {
+                stream_key: streamKey,
+                terminal: false,
+              },
+            },
+          );
+          quest.updateUserStatus(syncRes as any);
+          finalServerDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
+          if (quest.isCompleted() || finalServerDone >= secondsNeeded) {
+            actuallyComplete = true;
+            break;
+          }
+        } catch {}
+      }
+    }
+
+    if (!actuallyComplete) {
+      this.log(`⚠️ Nhiệm vụ "${questName}" chưa đủ 100% trên Discord (${finalServerDone}/${secondsNeeded}s).`, 'warn');
+      this.emit({
+        type: 'quest:error',
+        data: { name: questName, id: quest.id, message: `Chưa đủ 100% thời gian trên Discord (${finalServerDone}/${secondsNeeded}s)` },
+      });
+      return;
+    }
+
+    // Send terminal heartbeat to close the activity session cleanly once 100% verified
     try {
       const res = await this.client.rest.post(
         `/quests/${quest.id}/heartbeat`,
@@ -908,34 +971,6 @@ export class QuestManager implements Iterable<Quest> {
       quest.updateUserStatus(res as any);
     } catch {
       /* ignore */
-    }
-
-    let finalServerDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
-
-    if (!quest.isCompleted() && finalServerDone < secondsNeeded) {
-      this.log(`⏳ Đang gửi thêm tín hiệu chốt để Discord đồng bộ đủ 100%...`, 'info');
-      await this.sleep(10000);
-      try {
-        const extraRes = await this.client.rest.post(
-          `/quests/${quest.id}/heartbeat`,
-          {
-            body: { stream_key: streamKey, terminal: true },
-          },
-        );
-        quest.updateUserStatus(extraRes as any);
-        finalServerDone = (quest.userStatus?.progress?.[taskName as QuestTaskConfigType]?.value as number) || 0;
-      } catch {}
-    }
-
-    const verifiedDone = quest.isCompleted() || finalServerDone >= secondsNeeded;
-
-    if (!verifiedDone) {
-      this.log(`⚠️ Nhiệm vụ "${questName}" chưa đủ 100% trên Discord (${finalServerDone}/${secondsNeeded}s).`, 'warn');
-      this.emit({
-        type: 'quest:error',
-        data: { name: questName, id: quest.id, message: `Chưa đủ 100% thời gian trên Discord (${finalServerDone}/${secondsNeeded}s)` },
-      });
-      return;
     }
 
     // Always emit 100% progress before completing

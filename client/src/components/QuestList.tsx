@@ -140,7 +140,7 @@ export const QuestList: React.FC<QuestListProps> = ({ quests, lang }) => {
             const percent = isDone
               ? 100
               : targetSeconds > 0
-              ? Math.min(100, Math.max(0, Math.round((currentSeconds / targetSeconds) * 100)))
+              ? Math.min(99, Math.max(0, Math.floor((currentSeconds / targetSeconds) * 100)))
               : 0;
             const durationMinutes = Math.ceil(targetSeconds / 60);
 
