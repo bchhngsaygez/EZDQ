@@ -272,11 +272,41 @@ export class UserSession {
           }
 
           if (!this.isDestroyed) {
-            this.log('🏆 Tất cả nhiệm vụ đã hoàn thành xong!', 'success');
-            this.send({
-              type: 'finish',
-              data: { message: 'Đã hoàn tất tất cả nhiệm vụ xuất sắc!' },
-            });
+            let completedCount = 0;
+            let remainingCount = 0;
+            if (this.client) {
+              try {
+                const freshManager = await this.client.fetchQuests();
+                const freshQuests = freshManager.list().filter((q) => !q.isExpired() && q.isStarted());
+                completedCount = freshQuests.filter((q) => q.isCompleted() || q.hasClaimedRewards()).length;
+                remainingCount = freshQuests.length - completedCount;
+              } catch {
+                completedCount = executable.filter((q) => q.isCompleted() || q.hasClaimedRewards()).length;
+                remainingCount = Math.max(0, validQuests.length - completedCount);
+              }
+            } else {
+              completedCount = executable.filter((q) => q.isCompleted() || q.hasClaimedRewards()).length;
+              remainingCount = Math.max(0, validQuests.length - completedCount);
+            }
+
+            if (remainingCount === 0) {
+              this.log('🏆 Tất cả nhiệm vụ đã hoàn thành xong 100%!', 'success');
+              this.send({
+                type: 'finish',
+                data: { message: `Đã hoàn tất tất cả ${completedCount} nhiệm vụ xuất sắc!` },
+              });
+            } else {
+              this.log(
+                `🏁 Đã hoàn tất đợt cày nhiệm vụ (${completedCount} nhiệm vụ đã xong, còn ${remainingCount} nhiệm vụ chưa xong hoặc bị giới hạn API).`,
+                'info',
+              );
+              this.send({
+                type: 'finish',
+                data: {
+                  message: `Đã hoàn thành ${completedCount} nhiệm vụ (còn ${remainingCount} nhiệm vụ chưa xong hoặc cần nhận trên Discord).`,
+                },
+              });
+            }
             await this.stop();
           }
         } catch (err: any) {
