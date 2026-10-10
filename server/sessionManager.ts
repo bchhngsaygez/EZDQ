@@ -174,11 +174,11 @@ export class UserSession {
           const validQuests = questManager.filterQuestsValidToDo();
           if (validQuests.length === 0) {
             this.log('🎉 Không còn nhiệm vụ nào cần làm.', 'success');
+            await this.stop();
             this.send({
               type: 'finish',
               data: { message: 'Tất cả nhiệm vụ đã hoàn tất hoặc không có nhiệm vụ mới!' },
             });
-            await this.stop();
             return;
           }
 
@@ -240,11 +240,11 @@ export class UserSession {
               '👉 Hãy mở Discord và bấm "Nhận nhiệm vụ" rồi bấm Bắt đầu lại trên web!',
               'info',
             );
+            await this.stop();
             this.send({
               type: 'finish',
               data: { message: 'Cần nhận nhiệm vụ trên app Discord trước.' },
             });
-            await this.stop();
             return;
           }
 
@@ -289,6 +289,8 @@ export class UserSession {
               remainingCount = Math.max(0, validQuests.length - completedCount);
             }
 
+            await this.stop();
+
             if (remainingCount === 0) {
               this.log('🏆 Tất cả nhiệm vụ đã hoàn thành xong 100%!', 'success');
               this.send({
@@ -307,7 +309,6 @@ export class UserSession {
                 },
               });
             }
-            await this.stop();
           }
         } catch (err: any) {
           const msg = err?.message || String(err);
@@ -323,6 +324,7 @@ export class UserSession {
           } else {
             this.log(`Lỗi khi xử lý nhiệm vụ: ${msg}`, 'error');
           }
+          await this.stop();
           this.setState('error', msg);
         }
       });
@@ -344,20 +346,28 @@ export class UserSession {
       this.client.questManager.abort();
     }
 
-    try {
-      await this.client?.clearCustomStatus();
-      this.send({
-        type: 'status_update',
-        data: { text: '', active: false },
-      });
-    } catch {
-      /* ignore */
-    }
+    if (this.client) {
+      try {
+        await Promise.race([
+          this.client.clearCustomStatus(),
+          new Promise((r) => setTimeout(r, 4000)),
+        ]);
+        this.send({
+          type: 'status_update',
+          data: { text: '', active: false },
+        });
+      } catch {
+        /* ignore */
+      }
 
-    try {
-      await this.client?.destroy();
-    } catch {
-      /* ignore */
+      try {
+        await Promise.race([
+          this.client.destroy(),
+          new Promise((r) => setTimeout(r, 3000)),
+        ]);
+      } catch {
+        /* ignore */
+      }
     }
 
     this.client = null;

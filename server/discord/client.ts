@@ -40,6 +40,7 @@ export class ClientQuest extends Client {
   private proxyAgent?: ProxyAgent;
   private isDestroyed = false;
   private onProxyAgentUpdated?: (agent?: ProxyAgent) => void;
+  public originalCustomStatus: any = undefined;
 
   constructor(
     token: string,
@@ -159,6 +160,18 @@ export class ClientQuest extends Client {
   async destroy(): Promise<void> {
     if (this.isDestroyed) return;
     this.isDestroyed = true;
+
+    // 1. Clear/revert custom status FIRST while proxyAgent and gateway are still 100% active
+    try {
+      await Promise.race([
+        this.clearCustomStatus(),
+        new Promise((r) => setTimeout(r, 3500)),
+      ]);
+    } catch {
+      /* ignore */
+    }
+
+    // 2. Destroy proxy agent
     if (this.proxyAgent) {
       try {
         await this.proxyAgent.destroy();
@@ -167,13 +180,13 @@ export class ClientQuest extends Client {
       }
       this.proxyAgent = undefined;
     }
+
+    // 3. Destroy websocket manager with safety timeout
     try {
-      await this.clearCustomStatus();
-    } catch {
-      /* ignore */
-    }
-    try {
-      await this.websocketManager.destroy();
+      await Promise.race([
+        this.websocketManager.destroy(),
+        new Promise((r) => setTimeout(r, 2500)),
+      ]);
     } catch {
       /* ignore */
     }
@@ -198,14 +211,24 @@ export class ClientQuest extends Client {
 
   /**
    * Set custom status on Discord: "Doing Quest ✔ • https://ezdisquest.nx.kg/"
-   * Sets via both Gateway Presence and REST User Settings
+   * Backs up the original custom status first so it can be restored when finished!
    */
   async setDoingQuestStatus(
     statusText = Constants.DEFAULT_CUSTOM_STATUS,
   ): Promise<boolean> {
     let success = false;
 
-    // 1. Gateway Presence Update (Realtime across all connected clients)
+    // 1. Fetch and remember the user's original custom status if not fetched yet
+    if (this.originalCustomStatus === undefined) {
+      try {
+        const settings = (await this.rest.get('/users/@me/settings')) as any;
+        this.originalCustomStatus = settings?.custom_status ?? null;
+      } catch {
+        this.originalCustomStatus = null;
+      }
+    }
+
+    // 2. Gateway Presence Update (Realtime across all connected clients)
     try {
       await this.websocketManager.send(0, {
         op: GatewayOpcodes.PresenceUpdate,
@@ -227,7 +250,7 @@ export class ClientQuest extends Client {
       // Gateway presence may silently fail if shard is reconnecting
     }
 
-    // 2. REST API /users/@me/settings (Persistent Discord custom status)
+    // 3. REST API /users/@me/settings (Persistent Discord custom status)
     try {
       await this.rest.patch('/users/@me/settings', {
         body: {
@@ -246,31 +269,87 @@ export class ClientQuest extends Client {
   }
 
   /**
-   * Clear or reset custom status on Discord
+   * Revert custom status back to user's original status or clear it completely
    */
   async clearCustomStatus(): Promise<void> {
+    const original = this.originalCustomStatus;
+
+    // 1. Gateway Presence Update
     try {
-      await this.websocketManager.send(0, {
-        op: GatewayOpcodes.PresenceUpdate,
-        d: {
-          since: null,
-          activities: [],
-          status: PresenceUpdateStatus.Online,
-          afk: false,
-        },
-      });
+      if (original && original.text) {
+        await this.websocketManager.send(0, {
+          op: GatewayOpcodes.PresenceUpdate,
+          d: {
+            since: null,
+            activities: [
+              {
+                name: 'Custom Status',
+                type: 4,
+                state: original.text,
+              },
+            ],
+            status: PresenceUpdateStatus.Online,
+            afk: false,
+          },
+        });
+      } else {
+        await this.websocketManager.send(0, {
+          op: GatewayOpcodes.PresenceUpdate,
+          d: {
+            since: null,
+            activities: [],
+            status: PresenceUpdateStatus.Online,
+            afk: false,
+          },
+        });
+      }
     } catch {
       /* ignore */
     }
 
+    // 2. REST API /users/@me/settings
     try {
-      await this.rest.patch('/users/@me/settings', {
-        body: {
-          custom_status: null,
-        },
-      });
+      if (original && (original.text || original.emoji_name)) {
+        await this.rest.patch('/users/@me/settings', {
+          body: {
+            custom_status: {
+              text: original.text || '',
+              emoji_id: original.emoji_id || null,
+              emoji_name: original.emoji_name || null,
+              expires_at: original.expires_at || null,
+            },
+          },
+        });
+        if (this.onLog) {
+          this.onLog(`🔄 Đã khôi phục trạng thái Discord ban đầu: "${original.text || ''}"`, 'info');
+        }
+      } else {
+        // Clear status completely
+        await this.rest.patch('/users/@me/settings', {
+          body: {
+            custom_status: null,
+          },
+        });
+        if (this.onLog) {
+          this.onLog('🧹 Đã xóa trạng thái làm nhiệm vụ trên Discord.', 'info');
+        }
+      }
     } catch {
-      /* ignore */
+      // Fallback: Some Discord client versions accept empty fields
+      try {
+        await this.rest.patch('/users/@me/settings', {
+          body: {
+            custom_status: {
+              text: null,
+              emoji_id: null,
+              emoji_name: null,
+              expires_at: null,
+            },
+          },
+        });
+      } catch {
+        /* ignore */
+      }
     }
   }
 

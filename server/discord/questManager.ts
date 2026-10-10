@@ -475,6 +475,7 @@ export class QuestManager implements Iterable<Quest> {
 
     this.log(`Đang giả lập xem video nhiệm vụ: "${questName}"...`, 'info');
 
+    let consecutiveVideoErrors = 0;
     while (!this.isAborted) {
       const maxAllowed = Math.floor((Date.now() - enrolledAt) / 1000) + maxFuture;
       // If enrolled in the past, allow jumping forward safely up to secondsNeeded
@@ -494,6 +495,7 @@ export class QuestManager implements Iterable<Quest> {
 
           quest.updateUserStatus(res);
           secondsDone = Math.min(secondsNeeded, timestamp);
+          consecutiveVideoErrors = 0;
 
           // If Discord already marked completion or timestamp reaches target, snap to 100%
           if (res.completed_at != null || secondsDone >= secondsNeeded) {
@@ -516,7 +518,16 @@ export class QuestManager implements Iterable<Quest> {
             break;
           }
         } catch (err: any) {
-          this.log(`Lỗi cập nhật tiến trình video "${questName}": ${err?.message}`, 'warn');
+          consecutiveVideoErrors++;
+          this.log(`⚠️ Lỗi cập nhật tiến trình video "${questName}" (${consecutiveVideoErrors}/5): ${err?.message}`, 'warn');
+          if (consecutiveVideoErrors >= 5) {
+            this.log(`Dừng nhiệm vụ video "${questName}" do lỗi liên tục quá 5 lần.`, 'error');
+            this.emit({
+              type: 'quest:error',
+              data: { name: questName, id: quest.id, message: err?.message || 'Lỗi video quá 5 lần' },
+            });
+            return;
+          }
         }
       }
 
