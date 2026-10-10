@@ -7,6 +7,7 @@ import { QuestManager } from './questManager';
 import { AllQuestsResponse, UserProfile } from '../types';
 import { Constants } from './constants';
 import { Utils } from './utils';
+import { createProxyAgent, isProxyError, ProxyPoolManager } from '../proxy/proxyPool';
 
 const originalSend = WebSocketShard.prototype.send;
 WebSocketShard.prototype.send = async function (payload: GatewaySendPayload) {
@@ -35,36 +36,60 @@ export class ClientQuest extends Client {
   public readonly token: string;
   public onLog?: (message: string, level: 'info' | 'warn' | 'error' | 'success' | 'system') => void;
   public proxyUrl?: string;
+  public proxyMode: 'auto_github' | 'none' | 'custom' = 'none';
   private proxyAgent?: ProxyAgent;
   private isDestroyed = false;
+  private onProxyAgentUpdated?: (agent?: ProxyAgent) => void;
 
-  constructor(token: string, proxyUrl?: string) {
+  constructor(
+    token: string,
+    proxyUrl?: string,
+    proxyMode: 'auto_github' | 'none' | 'custom' = 'none',
+  ) {
     if (!token) {
       throw new Error('Token Discord là bắt buộc.');
     }
     const cleanToken = token.trim();
-    let initialProxyAgent: ProxyAgent | undefined = undefined;
+    let currentProxyMode = proxyMode;
+    let currentProxyAgent: ProxyAgent | undefined = undefined;
 
     if (proxyUrl) {
       try {
-        initialProxyAgent = new ProxyAgent({
-          uri: proxyUrl,
-          connect: { timeout: 10000 },
-        });
+        currentProxyAgent = createProxyAgent(proxyUrl, 5000);
       } catch {
-        initialProxyAgent = undefined;
+        currentProxyAgent = undefined;
       }
     }
+
+    let rotateHandler: ((err: any) => Promise<boolean>) | null = null;
 
     const restMakeRequest = async (url: string, init: RequestInit): Promise<ResponseLike> => {
       if (init.headers) {
         init.headers = Utils.makeHeaders(init.headers as any);
       }
-      const activeAgent = (this as any)?.proxyAgent ?? initialProxyAgent;
-      if (activeAgent) {
-        (init as any).dispatcher = activeAgent;
+
+      let attempt = 0;
+      while (attempt < 2) {
+        attempt++;
+        if (currentProxyAgent) {
+          (init as any).dispatcher = currentProxyAgent;
+        }
+
+        try {
+          return await DefaultRestOptions.makeRequest(url, init);
+        } catch (err: any) {
+          if (attempt === 1 && currentProxyMode === 'auto_github' && isProxyError(err)) {
+            if (rotateHandler) {
+              const rotated = await rotateHandler(err);
+              if (rotated) {
+                continue; // Retry request immediately with next proxy
+              }
+            }
+          }
+          throw err;
+        }
       }
-      return DefaultRestOptions.makeRequest(url, init);
+      throw new Error('Yêu cầu thất bại sau khi đổi proxy.');
     };
 
     const rest = new REST({
@@ -75,17 +100,6 @@ export class ClientQuest extends Client {
         return info.retryAfter > 60000;
       },
     }).setToken(cleanToken);
-
-    rest.on(RESTEvents.RateLimited, (info: any) => {
-      const waitSec = Math.ceil(info.timeToReset / 1000);
-      const route = info.route || 'Discord API';
-      if (this.onLog) {
-        this.onLog(
-          `⏳ [RateLimit Discord] Endpoint ${route} đang bị giới hạn IP, tự động chờ ${waitSec}s rồi thử lại...`,
-          'warn',
-        );
-      }
-    });
 
     const gateway = new WebSocketManager({
       token: cleanToken,
@@ -110,9 +124,31 @@ export class ClientQuest extends Client {
     super({ rest, gateway });
     this.token = cleanToken;
     this.proxyUrl = proxyUrl;
-    this.proxyAgent = initialProxyAgent;
+    this.proxyMode = proxyMode;
+    this.proxyAgent = currentProxyAgent;
     this.websocketManager = gateway;
     gateway.on('error', () => null);
+
+    this.onProxyAgentUpdated = (agent?: ProxyAgent) => {
+      currentProxyAgent = agent;
+    };
+
+    rotateHandler = async (err: any) => {
+      const res = await this.rotateToNextProxy(err);
+      currentProxyAgent = this.proxyAgent;
+      return res;
+    };
+
+    rest.on(RESTEvents.RateLimited, (info: any) => {
+      const waitSec = Math.ceil(info.timeToReset / 1000);
+      const route = info.route || 'Discord API';
+      if (this.onLog) {
+        this.onLog(
+          `⏳ [RateLimit Discord] Endpoint ${route} đang bị giới hạn IP, tự động chờ ${waitSec}s rồi thử lại...`,
+          'warn',
+        );
+      }
+    });
   }
 
   async connect(): Promise<void> {
@@ -270,14 +306,29 @@ export class ClientQuest extends Client {
 
     if (newProxyUrl) {
       try {
-        this.proxyAgent = new ProxyAgent({
-          uri: newProxyUrl,
-          connect: { timeout: 10000 },
-        });
+        this.proxyAgent = createProxyAgent(newProxyUrl, 5000);
       } catch {
         this.proxyAgent = undefined;
       }
     }
+    this.onProxyAgentUpdated?.(this.proxyAgent);
+  }
+
+  public async rotateToNextProxy(errorOrReason?: any): Promise<boolean> {
+    const reason = errorOrReason?.message || String(errorOrReason || 'Lỗi mạng');
+    const newProxy = await ProxyPoolManager.getInstance().rotateProxy(reason, this.onLog);
+    if (newProxy) {
+      this.setProxy(newProxy.proxyUrl);
+      return true;
+    } else {
+      this.setProxy(undefined);
+      return false;
+    }
+  }
+
+  public isProxyError(err: any): boolean {
+    return isProxyError(err);
   }
 }
+
 

@@ -102,7 +102,7 @@ export class UserSession {
         }
       }
 
-      this.client = new ClientQuest(this.token, proxyUrl);
+      this.client = new ClientQuest(this.token, proxyUrl, proxyMode);
       this.client.onLog = (msg, lvl) => this.log(msg, lvl);
 
       this.client.once(GatewayDispatchEvents.Ready, async ({ data }) => {

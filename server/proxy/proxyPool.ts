@@ -1,4 +1,4 @@
-import { ProxyAgent, request } from 'undici';
+import { ProxyAgent, Client, request } from 'undici';
 import { LogLevel } from '../types';
 
 /**
@@ -51,6 +51,50 @@ export interface ProxyTestResult {
   testedAt: number;
 }
 
+/**
+ * Detects whether an error is caused by a proxy connection timeout, network reset, or Cloudflare rate limit
+ */
+export function isProxyError(err: any): boolean {
+  if (!err) return false;
+  const msg = (err.message || String(err)).toLowerCase();
+  const code = (err.code || '').toLowerCase();
+  const name = (err.name || '').toLowerCase();
+
+  return (
+    name.includes('connecttimeouterror') ||
+    name.includes('socketerror') ||
+    code.includes('und_err_connect_timeout') ||
+    code.includes('und_err_socket') ||
+    code.includes('und_err_headers_timeout') ||
+    code.includes('und_err_body_timeout') ||
+    code.includes('econnreset') ||
+    code.includes('econnrefused') ||
+    code.includes('etimedout') ||
+    code.includes('ehostunreach') ||
+    code.includes('enetunreach') ||
+    msg.includes('connect timeout') ||
+    msg.includes('socket hang up') ||
+    msg.includes('proxy response') ||
+    msg.includes('proxy error') ||
+    msg.includes('connection reset') ||
+    msg.includes('ratelimiterror[/quests/@me]')
+  );
+}
+
+/**
+ * Factory helper to construct ProxyAgent with enforced connection timeout
+ */
+export function createProxyAgent(proxyUrl: string, connectTimeout = 5000): ProxyAgent {
+  return new ProxyAgent({
+    uri: proxyUrl,
+    clientFactory: (origin, opts) =>
+      new Client(origin, {
+        ...opts,
+        connect: { timeout: connectTimeout },
+      }),
+  });
+}
+
 export class ProxyPoolManager {
   private static instance: ProxyPoolManager;
   private eliteProxies: string[] = [];
@@ -58,10 +102,13 @@ export class ProxyPoolManager {
   private lastEliteScraped = 0;
   private lastSecondaryScraped = 0;
   private isScrapingSecondary = false;
+  private isReplenishing = false;
   private failedProxies = new Set<string>();
 
-  // Cached verified active proxy for instant (0ms) connection
-  private verifiedProxy: ProxyTestResult | null = null;
+  // Standby verified proxy pool waiting in memory
+  private standbyPool: ProxyTestResult[] = [];
+  // Currently active proxy in use
+  private activeProxy: ProxyTestResult | null = null;
 
   private constructor() {}
 
@@ -72,18 +119,21 @@ export class ProxyPoolManager {
     return ProxyPoolManager.instance;
   }
 
+  public getStandbyCount(): number {
+    return this.standbyPool.length;
+  }
+
+  public getActiveProxy(): string | null {
+    return this.activeProxy?.proxyUrl || null;
+  }
+
   /**
-   * Background pre-warm on server boot so proxy is already verified when user starts
+   * Background pre-warm on server boot: loads lists and prepares a standby pool
    */
   public async prewarm(): Promise<void> {
     try {
       await this.scrapeElite();
-      // Test and keep 1 warm proxy ready in memory
-      const winner = await this.raceCandidates(this.eliteProxies.slice(0, 25), 1800);
-      if (winner) {
-        this.verifiedProxy = winner;
-      }
-      // Trigger lazy secondary scrape in background without blocking
+      await this.fillStandbyPool(4);
       this.scrapeSecondaryInBackground();
     } catch {
       /* ignore background prewarm failure */
@@ -93,10 +143,9 @@ export class ProxyPoolManager {
   /**
    * Scrapes Tier 0 elite sources in ~200-400ms
    */
-  public async scrapeElite(onLog?: (msg: string, level: LogLevel) => void): Promise<string[]> {
+  public async scrapeElite(onLog?: (msg: string, level: LogLevel) => void, forceRefresh = false): Promise<string[]> {
     const now = Date.now();
-    // Cache elite proxies for 10 minutes
-    if (this.eliteProxies.length > 30 && now - this.lastEliteScraped < 10 * 60 * 1000) {
+    if (!forceRefresh && this.eliteProxies.length > 30 && now - this.lastEliteScraped < 10 * 60 * 1000) {
       return this.eliteProxies;
     }
 
@@ -181,14 +230,11 @@ export class ProxyPoolManager {
   /**
    * Fast health-check single proxy
    */
-  public async testProxy(proxyUrl: string, timeoutMs = 1800): Promise<ProxyTestResult | null> {
+  public async testProxy(proxyUrl: string, timeoutMs = 2000): Promise<ProxyTestResult | null> {
     const start = Date.now();
     let agent: ProxyAgent | null = null;
     try {
-      agent = new ProxyAgent({
-        uri: proxyUrl,
-        connect: { timeout: timeoutMs },
-      });
+      agent = createProxyAgent(proxyUrl, timeoutMs);
 
       const res = await request('https://discord.com/api/v10/gateway', {
         dispatcher: agent,
@@ -220,7 +266,7 @@ export class ProxyPoolManager {
   /**
    * Races candidates concurrently using Promise.any. Returns the instant the first responds!
    */
-  private async raceCandidates(candidates: string[], timeoutMs = 1800): Promise<ProxyTestResult | null> {
+  private async raceCandidates(candidates: string[], timeoutMs = 2000): Promise<ProxyTestResult | null> {
     if (!candidates.length) return null;
 
     try {
@@ -238,31 +284,76 @@ export class ProxyPoolManager {
   }
 
   /**
-   * Finds fastest working proxy with an absolute hard deadline of 2.8s
-   * Ensures the user NEVER waits more than 2-3 seconds!
+   * Replenishes the standby pool in background with targetCount working proxies
+   */
+  public async fillStandbyPool(targetCount = 5, onLog?: (msg: string, level: LogLevel) => void): Promise<void> {
+    if (this.isReplenishing) return;
+    this.isReplenishing = true;
+
+    try {
+      if (this.eliteProxies.length === 0) {
+        await this.scrapeElite();
+      }
+
+      let allCandidates = [
+        ...this.eliteProxies.filter((p) => !this.failedProxies.has(p)),
+        ...this.secondaryProxies.filter((p) => !this.failedProxies.has(p)),
+      ];
+
+      let offset = 0;
+      const batchSize = 20;
+
+      while (this.standbyPool.length < targetCount && offset < allCandidates.length) {
+        const batch = allCandidates.slice(offset, offset + batchSize);
+        offset += batchSize;
+        if (!batch.length) break;
+
+        try {
+          const winner = await this.raceCandidates(batch, 1800);
+          if (winner && !this.standbyPool.some((p) => p.proxyUrl === winner.proxyUrl)) {
+            this.standbyPool.push(winner);
+          }
+        } catch {
+          /* continue to next batch */
+        }
+      }
+
+      if (onLog && this.standbyPool.length > 0) {
+        onLog(`🛡️ [Proxy Standby] Đã chuẩn bị sẵn ${this.standbyPool.length} proxy dự phòng trong bộ nhớ RAM`, 'info');
+      }
+    } finally {
+      this.isReplenishing = false;
+    }
+  }
+
+  /**
+   * Finds fastest working proxy for session initialization
    */
   public async findWorkingProxy(onLog?: (msg: string, level: LogLevel) => void): Promise<ProxyTestResult | null> {
     const now = Date.now();
 
-    // 1. Instant check: reuse verified proxy if tested recently (<5 minutes ago)
-    if (this.verifiedProxy && now - this.verifiedProxy.testedAt < 5 * 60 * 1000) {
+    // 1. If we have verified proxies ready in standby pool, take the top one immediately (0ms)!
+    if (this.standbyPool.length > 0) {
+      const top = this.standbyPool.shift()!;
+      this.activeProxy = top;
       if (onLog) {
         onLog(
-          `⚡ [Proxy Ready] Sử dụng ngay proxy đã xác thực: ${this.verifiedProxy.proxyUrl} (Độ trễ: ${this.verifiedProxy.latency}ms)`,
+          `⚡ [Proxy Ready] Sử dụng ngay proxy dự phòng: ${top.proxyUrl} (Độ trễ: ${top.latency}ms | Còn ${this.standbyPool.length} proxy chờ sẵn)`,
           'success',
         );
       }
-      return this.verifiedProxy;
+      // Replenish standby pool in background
+      this.fillStandbyPool(4).catch(() => {});
+      return top;
     }
 
     if (onLog) {
       onLog(`🔎 [Proxy Check] Đang kiểm tra song song 35 proxy tốc độ cao tới Discord API...`, 'info');
     }
 
-    // 2. Ensure elite list is loaded (takes ~250ms)
+    // 2. Ensure elite list is loaded
     await this.scrapeElite(onLog);
 
-    // Filter available candidates
     const availableElite = this.eliteProxies.filter((p) => !this.failedProxies.has(p));
     const racePool = availableElite.length >= 25 ? availableElite.slice(0, 35) : [...availableElite, ...this.secondaryProxies.slice(0, 20)];
 
@@ -273,39 +364,41 @@ export class ProxyPoolManager {
       return null;
     }
 
-    // 3. Race all 35 candidates in parallel with 1800ms timeout
+    // 3. Race all 35 candidates in parallel
     const winner = await this.raceCandidates(racePool, 1800);
 
     if (winner) {
-      this.verifiedProxy = winner;
+      this.activeProxy = winner;
       if (onLog) {
         onLog(
           `🚀 [Proxy Sống] Kết nối thành công qua Proxy: ${winner.proxyUrl} (Độ trễ: ${winner.latency}ms)`,
           'success',
         );
       }
-      // Start background scraping for secondary sources
+      // Trigger background replenishment to fill standby pool
+      this.fillStandbyPool(4).catch(() => {});
       this.scrapeSecondaryInBackground();
       return winner;
     }
 
-    // 4. If batch 1 failed, try 1 more quick micro-batch of 25 (with 1500ms timeout)
+    // 4. Try one more fast micro-batch of 25
     const secondBatch = availableElite.slice(35, 60);
     if (secondBatch.length > 0) {
-      const secondWinner = await this.raceCandidates(secondBatch, 1500);
+      const secondWinner = await this.raceCandidates(secondBatch, 1600);
       if (secondWinner) {
-        this.verifiedProxy = secondWinner;
+        this.activeProxy = secondWinner;
         if (onLog) {
           onLog(
             `🚀 [Proxy Sống] Kết nối thành công qua Proxy: ${secondWinner.proxyUrl} (Độ trễ: ${secondWinner.latency}ms)`,
             'success',
           );
         }
+        this.fillStandbyPool(4).catch(() => {});
         return secondWinner;
       }
     }
 
-    // 5. Fallback immediately - don't keep user waiting!
+    // 5. Fallback immediately
     if (onLog) {
       onLog(
         `⚠️ [Proxy Timeout] Các proxy công cộng đang phản hồi chậm, tự động kết nối trực tiếp (Direct IP) để bắt đầu ngay!`,
@@ -315,14 +408,83 @@ export class ProxyPoolManager {
     return null;
   }
 
-  public markFailed(proxyUrl: string) {
-    this.failedProxies.add(proxyUrl);
-    if (this.verifiedProxy?.proxyUrl === proxyUrl) {
-      this.verifiedProxy = null;
+  /**
+   * Auto-failover: Rotates to the next verified proxy from standby pool when an error occurs.
+   * If all standby proxies are dead or empty, automatically re-scrapes fresh list from GitHub!
+   */
+  public async rotateProxy(
+    reason?: string,
+    onLog?: (msg: string, level: LogLevel) => void,
+  ): Promise<ProxyTestResult | null> {
+    if (this.activeProxy) {
+      this.failedProxies.add(this.activeProxy.proxyUrl);
     }
+
+    const friendlyReason = reason || 'Connect Timeout / Network Error';
+
+    // 1. Try to pop a ready proxy from the standby pool
+    while (this.standbyPool.length > 0) {
+      const candidate = this.standbyPool.shift()!;
+      // Fast sanity check: make sure it wasn't marked failed
+      if (this.failedProxies.has(candidate.proxyUrl)) continue;
+
+      this.activeProxy = candidate;
+      if (onLog) {
+        onLog(
+          `🔄 [Proxy Failover] Phát hiện sự cố mạng (${friendlyReason}), tự động chuyển sang Proxy dự phòng: ${candidate.proxyUrl} (Độ trễ: ${candidate.latency}ms | Còn ${this.standbyPool.length} proxy dự phòng)`,
+          'warn',
+        );
+      }
+
+      // Trigger background replenishment so standby pool remains stocked
+      this.fillStandbyPool(4).catch(() => {});
+      return candidate;
+    }
+
+    // 2. All pre-tested standby proxies are exhausted or died! Re-scrape fresh lists from GitHub!
+    if (onLog) {
+      onLog(
+        `🔄 [Proxy Quét Lại] Toàn bộ proxy dự phòng đã hết hoặc mất kết nối, đang tự động cào danh sách mới từ GitHub...`,
+        'warn',
+      );
+    }
+
+    // Invalidate old scrape cache to force fresh pull
+    this.lastEliteScraped = 0;
+    await this.scrapeElite(onLog, true);
+
+    const freshCandidates = this.eliteProxies.filter((p) => !this.failedProxies.has(p));
+    if (freshCandidates.length > 0) {
+      const winner = await this.raceCandidates(freshCandidates.slice(0, 35), 2000);
+      if (winner) {
+        this.activeProxy = winner;
+        if (onLog) {
+          onLog(
+            `🚀 [Proxy Mới] Đã tìm thấy proxy sống mới từ GitHub: ${winner.proxyUrl} (Độ trễ: ${winner.latency}ms)`,
+            'success',
+          );
+        }
+        this.fillStandbyPool(4).catch(() => {});
+        return winner;
+      }
+    }
+
+    // 3. Last resort fallback to Direct IP
+    if (onLog) {
+      onLog(
+        `⚠️ [Proxy Direct] Đã quét toàn bộ danh sách mới nhưng không có proxy nào phản hồi, tự động chuyển sang kết nối trực tiếp (Direct IP)!`,
+        'warn',
+      );
+    }
+    this.activeProxy = null;
+    return null;
   }
 
-  public getActiveProxy(): string | null {
-    return this.verifiedProxy?.proxyUrl || null;
+  public markFailed(proxyUrl: string) {
+    this.failedProxies.add(proxyUrl);
+    if (this.activeProxy?.proxyUrl === proxyUrl) {
+      this.activeProxy = null;
+    }
+    this.standbyPool = this.standbyPool.filter((p) => p.proxyUrl !== proxyUrl);
   }
 }

@@ -596,8 +596,17 @@ export class QuestManager implements Iterable<Quest> {
           break;
         }
       } catch (err: any) {
-        consecutiveErrors++;
         const msg = err?.message || String(err);
+        if (this.client.isProxyError(err) && this.client.proxyMode === 'auto_github') {
+          this.log(`⚠️ Sự cố mạng proxy ("${msg}"). Đang tự động chuyển sang Proxy dự phòng...`, 'warn');
+          const rotated = await this.client.rotateToNextProxy(err);
+          if (rotated) {
+            consecutiveErrors = 0;
+            await this.sleep(1500);
+            continue;
+          }
+        }
+        consecutiveErrors++;
         this.log(`⚠️ Lỗi gửi tín hiệu "${applicationName}" (${consecutiveErrors}/5): ${msg}`, 'warn');
         if (consecutiveErrors >= 5) {
           this.log(`Dừng nhiệm vụ "${questName}" do lỗi tín hiệu quá 5 lần.`, 'error');
@@ -697,8 +706,17 @@ export class QuestManager implements Iterable<Quest> {
           break;
         }
       } catch (err: any) {
-        consecutiveErrors++;
         const msg = err?.message || String(err);
+        if (this.client.isProxyError(err) && this.client.proxyMode === 'auto_github') {
+          this.log(`⚠️ Sự cố mạng proxy ("${msg}"). Đang tự động chuyển sang Proxy dự phòng...`, 'warn');
+          const rotated = await this.client.rotateToNextProxy(err);
+          if (rotated) {
+            consecutiveErrors = 0;
+            await this.sleep(1500);
+            continue;
+          }
+        }
+        consecutiveErrors++;
         this.log(`⚠️ Lỗi gửi tín hiệu hoạt động (${consecutiveErrors}/5): ${msg}`, 'warn');
         if (consecutiveErrors >= 5) {
           this.log(`Dừng nhiệm vụ "${questName}" do lỗi tín hiệu quá 5 lần.`, 'error');
